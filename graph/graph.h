@@ -17,7 +17,7 @@ typedef std::pair<w_t, vid_t> wv_pair;
 typedef std::pair<vid_t, vid_t> vv_pair;
 typedef std::pair<vid_t, std::pair<vid_t, w_t>>
     ch_nei_pair;  // tuple <dst_id,middle_id,weight> for ch
-
+const w_t INF = 1e12;
 class Graph {
  public:
   void init_from_file(std::string file_name);
@@ -27,7 +27,7 @@ class Graph {
 
   std::vector<std::vector<vw_pair>> neighbors_;
 
-
+  
   vid_t v_size_;
   vid_t e_size_;
 };

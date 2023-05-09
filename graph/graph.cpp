@@ -18,8 +18,6 @@ void Graph::init_from_file(std::string file_name){
         neighbors_[dst].push_back({src,weight});
     }
 
-
-
 }
 
 void Graph::remove_edge(vid_t u,vid_t v){
