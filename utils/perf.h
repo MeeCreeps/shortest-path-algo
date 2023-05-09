@@ -45,7 +45,7 @@ inline double current_milliseconds(void) {
   return tv.tv_sec * 1000UL + tv.tv_usec / 1000UL;
 }
 
-class watch {
+class Watch {
  public:
   // start a new mark
   void mark(const std::string& smark) { mark_[smark] = current_milliseconds(); }

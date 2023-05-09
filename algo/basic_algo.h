@@ -2,7 +2,7 @@
 
 #include "graph/graph.h"
 
-class basic_algo {
+class BasicAlgo {
  public:
   virtual void processing() = 0;
   virtual void load_index(std::string index_file) = 0;
@@ -12,6 +12,5 @@ class basic_algo {
       const std::vector<std::pair<vid_t, vid_t>>& v_pair_lists);
 
  protected:
-  std::shared_ptr<graph> graph_;
-
+  std::shared_ptr<Graph> graph_;
 };

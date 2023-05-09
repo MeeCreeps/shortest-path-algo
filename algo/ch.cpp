@@ -1,24 +1,23 @@
 #include <functional>
 #include <memory>
 #include <queue>
+#include <set>
 
 #include "basic_algo.h"
-struct dgree_cmp {
-  bool operator()(const int& a, const int& b) { return a < b; }
-};
 
-class ch : public basic_algo {
+class Ch : public BasicAlgo {
  public:
   void processing();
-  void load_index(std::string index_file);
-  void write_index(std::string index_file);
-  int query(vid_t v, vid_t u);
-  void batch_query(const std::vector<std::pair<vid_t, vid_t>>& v_pair_lists);
-
   void contraction();
+
+  int query(vid_t v, vid_t u);
+  void batCh_query(const std::vector<std::pair<vid_t, vid_t>>& v_pair_lists);
+
   void load_order(std::string order_file);
   void write_order(std::string order_file);
 
+  void load_index(std::string index_file);
+  void write_index(std::string index_file);
   void generate_order();
 
  private:
@@ -30,37 +29,51 @@ class ch : public basic_algo {
   std::vector<vid_t> order_;
   std::vector<vid_t> invert_order_;
   std::string order_file_;
+  std::string index_file_;
   std::vector<std::map<vid_t, vid_t>> shortcut_node_;
 };
 
-void ch::processing() {
-  perf::watch watch;
-  watch.mark("t1");
+void Ch::processing() {
+  perf::Watch watCh;
+
   contracted_.resize(graph_->get_v_size(), false);
 
-  LOG(INFO) << "ch start contracting";
+  LOG(INFO) << " begin generate order:";
+
+  watCh.mark("t1");
+
+  if (order_.empty()) {
+    generate_order();
+    write_order(order_file_);
+  } else {
+    load_order(order_file_);
+  }
+
+  LOG(INFO) << "Ch start contracting";
 
   contraction();
 
-  LOG(INFO) << "ch finish contracting, time cost:" << watch.showlit_mills("t1")
+  LOG(INFO) << "Ch finish contracting, time cost:" << watCh.showlit_mills("t1")
             << " ms";
 }
 
-void ch::load_index(std::string index_file) {}
-void ch::write_index(std::string index_file) {}
-int ch::query(vid_t v, vid_t u) {}
-void ch::batch_query(const std::vector<std::pair<vid_t, vid_t>>& v_pair_lists) {
+void Ch::load_index(std::string index_file) {}
+void Ch::write_index(std::string index_file) {}
+int Ch::query(vid_t v, vid_t u) {}
+void Ch::batCh_query(const std::vector<std::pair<vid_t, vid_t>>& v_pair_lists) {
 }
 
-void ch::contraction() {
+void Ch::contraction() {
   for (auto v : order_) {
     contract_node(v);
   }
 }
 
-void ch::load_order(std::string order_file) {
+void Ch::load_order(std::string order_file) {
   std::ifstream fs(order_file);
-  order_.resize(graph_->get_v_size());
+  order_.resize(graph_->v_size_);
+  invert_order_.resize(graph_->v_size_);
+
   for (vid_t i = 0; i < order_.size(); ++i) {
     fs >> order_[i];
     invert_order_[order_[i]] = i;
@@ -69,7 +82,7 @@ void ch::load_order(std::string order_file) {
   LOG(INFO) << "finish loading order file";
 }
 
-void ch::write_order(std::string order_file) {
+void Ch::write_order(std::string order_file) {
   assert(order_.size() == graph_->get_v_size());
   std::ofstream fs(order_file);
   for (auto v : order_) {
@@ -79,9 +92,64 @@ void ch::write_order(std::string order_file) {
   LOG(INFO) << "finsh writing order file";
 }
 
-void ch::generate_order() {}
+std::vector<int> D, D2;
 
-void ch::contract_node(vid_t vid) {
+struct DegComp {
+  int v_;
+  DegComp(int v) { v_ = v; }
+  bool operator<(const DegComp d) const {
+    if (D[v_] != D[d.v_]) return D[v_] < D[d.v_];
+    if (D2[v_] != D2[d.v_]) return D2[v_] < D2[d.v_];
+    return v_ < d.v_;
+  }
+};
+
+// default : degree
+// Edge difference: The edge difference is the number of shortcuts added minus
+// the number of original edges removed during contraction. Nodes with a lower
+// edge difference are contracted first to minimize the total number of
+// shortcuts in the graph.
+void Ch::generate_order() {
+  std::vector<std::vector<vw_pair>> neighbors = graph_->neighbors_;
+  int v_size = graph_->v_size_;
+
+  order_.resize(v_size, 0);
+  invert_order_.resize(v_size, 0);
+
+  // copy graph
+
+  D.resize(v_size, 0);
+  D2.resize(v_size, 0);
+
+  std::vector<bool> removed(v_size, false);
+
+  std::set<DegComp> deg;
+  int degree;
+
+  for (int i = 0; i < v_size; ++i) {
+    degree = neighbors[i].size();
+    if (degree != 0) {
+      D[i] = degree;
+      D2[i] = degree;
+      deg.insert(DegComp(i));
+    }
+  }
+
+  while (!deg.empty()) {
+    vid_t con_v = deg.begin()->v_;
+    order_.push_back(con_v);
+    removed[con_v] = true; 
+
+    
+
+  }
+
+  for (int i = 0; i < order_.size(); ++i) {
+    invert_order_[order_[i]] = i;
+  }
+}
+
+void Ch::contract_node(vid_t vid) {
   assert(!contracted_[vid]);
   contracted_[vid] = true;
 
@@ -112,10 +180,8 @@ void ch::contract_node(vid_t vid) {
   }
 }
 
-int ch::bi_dijkstra(vid_t src, vid_t dst) {}
-
 // max_hop = 2
-std::vector<w_t>& ch::limit_dijkstra(vid_t u, vid_t max_dist, vid_t max_hop) {
+std::vector<w_t>& Ch::limit_dijkstra(vid_t u, vid_t max_dist, vid_t max_hop) {
   std::priority_queue<wv_pair, std::vector<wv_pair>, std::greater<wv_pair>>
       dist_queue;
 
@@ -147,3 +213,5 @@ std::vector<w_t>& ch::limit_dijkstra(vid_t u, vid_t max_dist, vid_t max_hop) {
 
   return dists;
 }
+
+int Ch::bi_dijkstra(vid_t src, vid_t dst) {}

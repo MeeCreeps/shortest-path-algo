@@ -1,7 +1,7 @@
 #include "graph.h"
 
 
-void graph::init_from_file(std::string file_name){
+void Graph::init_from_file(std::string file_name){
     std::ifstream fs(file_name);
     if(!fs){
         LOG(INFO)<<"file is not exist";
@@ -22,6 +22,6 @@ void graph::init_from_file(std::string file_name){
 
 }
 
-void graph::remove_edge(vid_t u,vid_t v){
+void Graph::remove_edge(vid_t u,vid_t v){
 
 }
