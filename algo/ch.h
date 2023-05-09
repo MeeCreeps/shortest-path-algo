@@ -1,3 +1,5 @@
+#ifndef ALGO_CH_H_
+#define ALGO_CH_H_
 #include <functional>
 #include <memory>
 #include <queue>
@@ -9,7 +11,7 @@ class Ch : public BasicAlgo {
  public:
   void init_contracted_graph();
   void processing();
-  void contraction();
+  virtual void contraction();
 
   inline w_t query(vid_t v, vid_t u);
   void batch_query(const std::vector<std::pair<vid_t, vid_t>>& v_pair_lists);
@@ -21,27 +23,24 @@ class Ch : public BasicAlgo {
   void write_index(std::string index_file);
   void generate_order();
 
- private:
+ protected:
   void contract_node(vid_t vid);
-
   w_t bi_dijkstra(vid_t s, vid_t t);
   std::vector<w_t>& limit_dijkstra(vid_t u, vid_t max_dist, vid_t max_hop);
 
   void delete_edge(std::vector<std::map<vid_t, w_t>>& graph, vid_t u, vid_t v);
   void add_edge(std::vector<std::map<vid_t, w_t>>& graph, vid_t u, vid_t v);
 
-  std::vector<bool> contracted_;
-
   // <order , vertex_id >
   std::vector<vid_t> order_;
   // <vertex_id , order>
   std::vector<vid_t> invert_order_;
 
-  std::string order_file_;
-  std::string index_file_;
   // perhaps use unordered_map
   std::vector<std::map<vid_t, w_t>> contracted_graph_;
   std::vector<std::map<vid_t, vid_t>> shortcut_node_;
+
+  std::vector<bool> contracted_;
   vid_t v_size_;
 };
 
@@ -97,7 +96,7 @@ inline w_t Ch::query(vid_t s, vid_t t) { return bi_dijkstra(s, t); }
 void Ch::batch_query(const std::vector<std::pair<vid_t, vid_t>>& v_pair_lists) {
   std::vector<w_t> weight;
   for (auto& p : v_pair_lists) {
-    weight.push_back(bi_dijkstra(p.first, p.second));
+    weight.push_back(query(p.first, p.second));
   }
 }
 
@@ -398,3 +397,5 @@ w_t Ch::bi_dijkstra(vid_t s, vid_t t) {
   }
   return min_dist;
 }
+
+#endif  // ALGO_CH_H_

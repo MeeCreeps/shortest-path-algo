@@ -13,4 +13,6 @@ class BasicAlgo {
 
  protected:
   std::shared_ptr<Graph> graph_;
+  std::string order_file_;
+  std::string index_file_;
 };
