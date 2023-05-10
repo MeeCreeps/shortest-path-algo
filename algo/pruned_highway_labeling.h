@@ -32,6 +32,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <functional>
 #include <queue>
 #include <vector>
 
@@ -182,8 +183,8 @@ void PrunedHighwayLabeling::ConstructLabel(const char *file) {
             int time = edges[i].time;
             int dist = edges[i].dist;
             int level = GetLevel(time, dist);
-            graph[from].push_back((edge){to, time, level});
-            graph[to].push_back((edge){from, time, level});
+            graph[from].push_back({to, time, level});
+            graph[to].push_back({from, time, level});
         }
     }
     load_time += GetTime();
@@ -399,7 +400,7 @@ void PrunedHighwayLabeling::ConstructLabel(const char *file) {
 void PrunedHighwayLabeling::load_index(std::string index_file) {
     Free();
 
-    FILE *in = fopen(file, "rb");
+    FILE *in = fopen(index_file.c_str(), "rb");
     if (in == NULL) {
         fprintf(stderr, "Can't open the label file\n");
         return;
@@ -443,33 +444,6 @@ void PrunedHighwayLabeling::load_index(std::string index_file) {
         }
     }
     fclose(in);
-}
-
-void PrunedHighwayLabeling::write_index(std::string index_file) {
-    FILE *out = fopen(file, "wb");
-    if (out == NULL) {
-        fprintf(stderr, "Can't open the label file\n");
-        return;
-    }
-    fwrite(&V, sizeof(int), 1, out);
-    fwrite(&contract[0], sizeof(int), V, out);
-    for (int v = 0; v < V; v++) {
-        if (contract[v] != -1) {
-            fwrite(&label[v].time, sizeof(int), 1, out);
-        } else {
-            int fnum = 1, snum = 0;
-            for (int i = 0;; i++) {
-                if (label[v].path[i] == GUARD) break;
-                fnum++;
-                snum += label[v].path[i] & NUM_MASK;
-            }
-            fwrite(&fnum, sizeof(int), 1, out);
-            fwrite(&snum, sizeof(int), 1, out);
-            fwrite(label[v].path, sizeof(unsigned), fnum, out);
-            fwrite(label[v].cost, sizeof(int), snum, out);
-        }
-    }
-    fclose(out);
 }
 
 inline int PrunedHighwayLabeling::query(int v, int w) {

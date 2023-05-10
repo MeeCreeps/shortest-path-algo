@@ -94,6 +94,41 @@ void Ch::contraction() {
     }
 }
 
+void Ch::contract_node(vid_t vid) {
+    assert(!contracted_[vid]);
+    contracted_[vid] = true;
+
+    w_t max_dist = 0, sec_dist = 0;
+    for (auto& pair : contracted_graph_[vid]) {
+        if (contracted_[pair.first]) continue;
+        if (pair.second > max_dist) {
+            max_dist = pair.second;
+        } else if (pair.second > sec_dist) {
+            sec_dist = pair.second;
+        }
+    }
+    max_dist += sec_dist;
+
+    for (auto& pair : contracted_graph_[vid]) {
+        if (contracted_[pair.first]) continue;
+        std::vector<w_t>& dists = limit_dijkstra(pair.first, max_dist, 2);
+        for (auto& neighbor : contracted_graph_[vid]) {
+            if (invert_order_[pair.first] > invert_order_[neighbor.first]) continue;
+            w_t total_w = pair.second + neighbor.second;
+            if (total_w < dists[neighbor.second] || dists[neighbor.second] == -1) {
+                // add shortcut
+                contracted_graph_[pair.first][neighbor.first] = total_w;
+                contracted_graph_[neighbor.first][pair.first] = total_w;
+
+                // TODO add support vertex
+                // form low level to high level node
+
+                // shortcut_node_[pair.first][neighbor.first] = vid;
+            }
+        }
+    }
+}
+
 std::vector<int> D, D2, _D, _D2;
 
 struct DegComp {
@@ -211,41 +246,6 @@ void Ch::add_edge(std::vector<std::map<vid_t, w_t>>& graph, vid_t u, vid_t v) {
         graph[v].insert({u, 1});
         D[v]++;
         D2[v]++;
-    }
-}
-
-void Ch::contract_node(vid_t vid) {
-    assert(!contracted_[vid]);
-    contracted_[vid] = true;
-
-    w_t max_dist = 0, sec_dist = 0;
-    for (auto& pair : contracted_graph_[vid]) {
-        if (contracted_[pair.first]) continue;
-        if (pair.second > max_dist) {
-            max_dist = pair.second;
-        } else if (pair.second > sec_dist) {
-            sec_dist = pair.second;
-        }
-    }
-    max_dist += sec_dist;
-
-    for (auto& pair : contracted_graph_[vid]) {
-        if (contracted_[pair.first]) continue;
-        std::vector<w_t>& dists = limit_dijkstra(pair.first, max_dist, 2);
-        for (auto& neighbor : contracted_graph_[vid]) {
-            if (invert_order_[pair.first] > invert_order_[neighbor.first]) continue;
-            w_t total_w = pair.second + neighbor.second;
-            if (total_w < dists[neighbor.second] || dists[neighbor.second] == -1) {
-                // add shortcut
-                contracted_graph_[pair.first][neighbor.first] = total_w;
-                contracted_graph_[neighbor.first][pair.first] = total_w;
-
-                // TODO add support vertex
-                // form low level to high level node
-
-                // shortcut_node_[pair.first][neighbor.first] = vid;
-            }
-        }
     }
 }
 
