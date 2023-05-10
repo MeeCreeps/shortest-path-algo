@@ -1,33 +1,28 @@
-CC = g++ 
-FLAGS = -std=c++17
-LIBS = -lgflags
+CXX = g++ 
+FLAGS = -std=c++17 -lgflags -O3
+
 
 
 BUILD = build
-OBJ = ${BUILD}/obj
+BIN = ${BUILD}/bin
+
 
 ALGO = algo
 GRAPH = graph 
 UTILS = utils
+THIRD = thirdpart
+
+third_include = -I./${THIRD}/glog/include -I./${THIRD}/gtest -I./${THIRD}/
 
 
+all: dir main
+dir: mkdir -p ${BIN}
 
-
-all: ${BUILD}/algo
-
-
-${BUILD}/algo : ${OBJ}/main.o ${OBJ}/ch.o 
-	${CC} ${FLAGS} ${LIBS} ${OBJ}/main.o ${OBJ}/ch.o \
-	-o ${BUILD}/algo 
-
-${OBJ}/main.o : ${ALGO}/main.cpp
-	${CC} -c ${FLAGS} ${LIBS} ${ALGO}/main.cpp -o ${OBJ}/main.o
-
-${OBJ}/ch.o : ${ALGO}/ch.cpp
-	${CC} -c ${FLAGS} ${LIBS} ${ALGO}/main.cpp -o ${OBJ}/ch.o
+${BIN}/main : ${ALGO}/main.cpp ${ALGO}/*.h ${UTILS}/*.h ${GRAPH}/*.h  ${THIRD}/CLI11.hpp
+	${CXX} ${FLAGS}  -I${ALGO} ${third_include}  $^ -o $@
 
 
 clean : 
-	rm -rf ${BUILD}/obj/* ${BUILD}/algo/*
+	rm -rf ${BIN}/*
 
 

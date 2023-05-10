@@ -5,12 +5,7 @@
 
 #include "graph.h";
 
-void limit_dijkstra(std::shared_ptr<Graph> &graph, int max_hop) {
-
-
-
-    
-}
+void limit_dijkstra(std::shared_ptr<Graph> &graph, int max_hop) {}
 
 int dijkstra() {}
 
