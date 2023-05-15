@@ -68,7 +68,7 @@ void H2H::processing() {
     if (fs.good()) {
         fs.close();
         load_index(index_file_);
-        load_order(order_file_);
+        // load_order(order_file_);
     } else {
         build_ch_index();
         build_tree();
@@ -261,7 +261,7 @@ int H2H::get_lca(int _p, int _q) {
 
 inline w_t H2H::query(vid_t v, vid_t u) {
     if (v == u) return 0;
-    if (invert_order_[v] == -1 || invert_order_[u] == -1) return INF;
+    // if (invert_order_[v] == -1 || invert_order_[u] == -1) return INF;
 
     int n1 = tree_.vid2node[v], n2 = tree_.vid2node[u];
     int LCA = get_lca(n1, n2);
