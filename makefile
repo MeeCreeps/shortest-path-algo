@@ -1,5 +1,5 @@
 CXX = g++ 
-FLAGS = -std=c++17  -L./build/lib -lglog  -lgflag -O3
+FLAGS = -std=c++17  -L./build/lib -lglog  -lgflags -O3
 
 
 
