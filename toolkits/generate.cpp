@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
 
     CLI11_PARSE(app, argc, argv);
     std::shared_ptr<Graph> graph = std::make_shared<Graph>(graph_file);
-    std::shared_ptr<QuerySet> query_set = std::make_shared<QuerySet>(graph_file, opt);
+    std::shared_ptr<QuerySet> query_set = std::make_shared<QuerySet>(graph, opt);
 
     std::vector<std::pair<vid_t, vid_t>> query_pairs = query_set->generate();
     query_set->write_to_file(query_file, query_pairs);
