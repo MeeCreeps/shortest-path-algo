@@ -17,16 +17,17 @@ third_include = -I./${THIRD}/glog/include -I./${THIRD}/gtest -I./${THIRD}/
 
 
 all: dir ${BIN}/main ${BIN}/generate ${BIN}/benchmark
-dir: mkdir -p ${BIN} ${BUILD}/lib
+dir: 
+	mkdir -p ${BIN} ${BUILD}/lib
 
-${BIN}/main : ${TOOLS}/main.cpp ${ALGO}/*.h ${UTILS}/*.h ${GRAPH}/*.h  ${THIRD}/CLI11.hpp
+${BIN}/main : ${TOOLS}/main.cpp $(wildcard ${ALGO}/*.h ${UTILS}/*.h ${GRAPH}/*.h ) ${THIRD}/CLI11.hpp
 	${CXX} ${FLAGS}  ${third_include}  $^ -o $@
 
 
-${BIN}/generate : ${TOOLS}/generate.cpp  ${UTILS}/*.h ${GRAPH}/*.h  ${THIRD}/CLI11.hpp
+${BIN}/generate : ${TOOLS}/generate.cpp $(wildcard ${UTILS}/*.h ${GRAPH}/*.h ) ${THIRD}/CLI11.hpp
 	${CXX} ${FLAGS}  ${third_include}  $^ -o $@
 
-${BIN}/benchmark :  ${TOOLS}/benchmark.cpp ${ALGO}/*.h ${UTILS}/*.h ${GRAPH}/*.h  ${THIRD}/CLI11.hpp
+${BIN}/benchmark :  ${TOOLS}/benchmark.cpp  $(wildcard ${ALGO}/*.h ${UTILS}/*.h ${GRAPH}/*.h )  ${THIRD}/CLI11.hpp
 	${CXX} ${FLAGS}   ${third_include}  $^ -o $@
 
 
