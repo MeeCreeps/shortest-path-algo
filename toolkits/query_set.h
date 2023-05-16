@@ -50,7 +50,7 @@ std::vector<std::pair<vid_t, vid_t>> QuerySet::generate_randomly() {
     return query_pairs;
 }
 
-static std::vector<std::pair<vid_t, vid_t>> QuerySet::read_from_file(std::string file_name) {
+std::vector<std::pair<vid_t, vid_t>> QuerySet::read_from_file(std::string file_name) {
     std::ifstream file(file_name);
     if (!file.good()) {
         LOG(INFO) << "query pair file is not exist!";
@@ -67,7 +67,7 @@ static std::vector<std::pair<vid_t, vid_t>> QuerySet::read_from_file(std::string
     }
 }
 
-void write_to_file(std::string file_name, std::vector<std::pair<vid_t, vid_t>>& query_set) {
+void QuerySet::write_to_file(std::string file_name, std::vector<std::pair<vid_t, vid_t>>& query_set) {
     std::ofstream file(file_name);
     file << query_set.size();
     for (auto& pair : query_set) {

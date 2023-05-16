@@ -27,14 +27,7 @@ int main(int argc, char** argv) {
     CLI11_PARSE(app, argc, argv);
 
     std::shared_ptr<SPAlgo> algo;
-    std::shared_ptr<Graph> graph = std::make_shared<Graph>();
-
-    if (graph_file.empty()) {
-        LOG(INFO) << "graph file is empty !";
-        exit(-1);
-    } else {
-        graph->init_from_file(graph_file);
-    }
+    std::shared_ptr<Graph> graph = std::make_shared<Graph>(graph_file);
 
     if ((algorithm == 0 || algorithm == 1) && order_file.empty()) {
         LOG(INFO) << "please provide with order file !";

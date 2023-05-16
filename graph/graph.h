@@ -20,6 +20,15 @@ const w_t INF = std::numeric_limits<int>::max();
 
 class Graph {
    public:
+    Graph() = default;
+    Graph(std::string file_name) {
+        if (file_name.empty()) {
+            LOG(INFO) << "graph file is empty !";
+            exit(-1);
+        } else {
+            init_from_file(file_name);
+        }
+    }
     void init_from_file(std::string file_name);
     void remove_edge(vid_t u, vid_t v);
     vid_t get_v_size() { return v_size_; };
