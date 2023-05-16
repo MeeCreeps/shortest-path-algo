@@ -4,11 +4,13 @@
 
 class SPAlgo {
    public:
+    SPAlgo(std::shared_ptr<Graph>& graph, std::string index_file) : graph_(graph), index_file_(index_file){};
+
     virtual void processing() = 0;
     virtual w_t query(vid_t v, vid_t u) = 0;
 
-    virtual void load_index(std::string index_file) = 0;
-    virtual void write_index(std::string index_file);
+    virtual void load_index() = 0;
+    virtual void write_index();
 
     void batch_query(std::string pair_path);
 
@@ -21,7 +23,6 @@ class SPAlgo {
 
    protected:
     std::shared_ptr<Graph> graph_;
-    std::string order_file_;
     std::string index_file_;
 };
 

@@ -9,16 +9,21 @@
 
 class Ch : public SPAlgo {
    public:
+    Ch(std::shared_ptr<Graph>& graph, std::string index_file, std::string order_file)
+        : SPAlgo(graph, index_file), order_file_(order_file) {
+        v_size_ = graph_->v_size_;
+    }
+
     // void init_contracted_graph();
     void processing() override;
     void build_ch_index();
 
     virtual void contraction();
 
-    void load_order(std::string order_file);
-    void write_order(std::string order_file);
-    void load_index(std::string index_file);
-    void write_index(std::string index_file);
+    void load_order();
+    void write_order();
+    void load_index();
+    void write_index();
 
     void generate_order();
 
@@ -43,17 +48,19 @@ class Ch : public SPAlgo {
 
     std::vector<bool> contracted_;
     vid_t v_size_;
+
+    std::string order_file_;
 };
 
 void Ch::processing() {
     std::ifstream fs(index_file_);
     if (fs.good()) {
         fs.close();
-        load_index(index_file_);
-        load_order(order_file_);
+        load_index();
+        load_order();
     } else {
         build_ch_index();
-        write_index(index_file_);
+        write_index();
     }
 }
 
@@ -70,9 +77,9 @@ void Ch::build_ch_index() {
     LOG(INFO) << " begin generate order:";
     if (order_.empty()) {
         generate_order();
-        write_order(order_file_);
+        write_order();
     } else {
-        load_order(order_file_);
+        load_order();
     }
     LOG(INFO) << "generating order finihsed!";
 
@@ -336,8 +343,8 @@ w_t Ch::bi_dijkstra(vid_t s, vid_t t) {
     return min_dist;
 }
 
-void Ch::load_order(std::string order_file) {
-    std::ifstream fs(order_file);
+void Ch::load_order() {
+    std::ifstream fs(order_file_);
     order_.resize(v_size_);
     invert_order_.resize(v_size_);
 
@@ -349,9 +356,9 @@ void Ch::load_order(std::string order_file) {
     LOG(INFO) << "finish loading order file";
 }
 
-void Ch::write_order(std::string order_file) {
+void Ch::write_order() {
     assert(order_.size() == graph_->get_v_size());
-    std::ofstream fs(order_file);
+    std::ofstream fs(order_file_);
     for (auto v : order_) {
         fs << v;
     }
@@ -359,8 +366,8 @@ void Ch::write_order(std::string order_file) {
     LOG(INFO) << "finsh writing order file";
 }
 
-void Ch::load_index(std::string index_file) {
-    std::ifstream fs(index_file);
+void Ch::load_index() {
+    std::ifstream fs(index_file_);
 
     vid_t u, v;
     w_t weight;
@@ -376,8 +383,8 @@ void Ch::load_index(std::string index_file) {
     fs.close();
 }
 
-void Ch::write_index(std::string index_file) {
-    std::ofstream fs(index_file);
+void Ch::write_index() {
+    std::ofstream fs(index_file_);
 
     fs << contracted_graph_.size();
 

@@ -40,7 +40,9 @@
 
 class PrunedHighwayLabeling : public SPAlgo {
    public:
-    PrunedHighwayLabeling() : V(0), label(NULL), load_time(0), construct_time(0) {}
+    PrunedHighwayLabeling(std::shared_ptr<Graph> &graph, std::string index_file)
+        : SPAlgo(graph, index_file), V(0), label(NULL), load_time(0), construct_time(0) {}
+
     ~PrunedHighwayLabeling() { Free(); };
 
     void ConstructLabel(const char *file);
@@ -51,8 +53,8 @@ class PrunedHighwayLabeling : public SPAlgo {
     void Statistics(void);
 
     void processing() override;
-    void load_index(std::string index_file) override;
-    void write_index(std::string index_file) override;
+    void load_index() override;
+    void write_index() override;
     inline int query(vid_t v, vid_t u) override;
 
    private:
@@ -172,7 +174,7 @@ void PrunedHighwayLabeling::ConstructLabel(const char *file) {
         for (int from, to, time, dist; fscanf(in, "%d %d %d %d", &from, &to, &time, &dist) != EOF;) {
             V = std::max(V, from + 1);
             V = std::max(V, to + 1);
-            edges.push_back((road){from, to, time, dist});
+            edges.push_back({from, to, time, dist});
         }
         fclose(in);
 
@@ -397,10 +399,10 @@ void PrunedHighwayLabeling::ConstructLabel(const char *file) {
     construct_time += GetTime();
 }
 
-void PrunedHighwayLabeling::load_index(std::string index_file) {
+void PrunedHighwayLabeling::load_index() {
     Free();
 
-    FILE *in = fopen(index_file.c_str(), "rb");
+    FILE *in = fopen(index_file_.c_str(), "rb");
     if (in == NULL) {
         fprintf(stderr, "Can't open the label file\n");
         return;
@@ -444,6 +446,33 @@ void PrunedHighwayLabeling::load_index(std::string index_file) {
         }
     }
     fclose(in);
+}
+
+void PrunedHighwayLabeling::write_index() {
+    FILE *out = fopen(index_file_.c_str(), "wb");
+    if (out == NULL) {
+        fprintf(stderr, "Can't open the label file\n");
+        return;
+    }
+    fwrite(&V, sizeof(int), 1, out);
+    fwrite(&contract[0], sizeof(int), V, out);
+    for (int v = 0; v < V; v++) {
+        if (contract[v] != -1) {
+            fwrite(&label[v].time, sizeof(int), 1, out);
+        } else {
+            int fnum = 1, snum = 0;
+            for (int i = 0;; i++) {
+                if (label[v].path[i] == GUARD) break;
+                fnum++;
+                snum += label[v].path[i] & NUM_MASK;
+            }
+            fwrite(&fnum, sizeof(int), 1, out);
+            fwrite(&snum, sizeof(int), 1, out);
+            fwrite(label[v].path, sizeof(unsigned), fnum, out);
+            fwrite(label[v].cost, sizeof(int), snum, out);
+        }
+    }
+    fclose(out);
 }
 
 inline int PrunedHighwayLabeling::query(int v, int w) {
@@ -534,10 +563,10 @@ void PrunedHighwayLabeling::processing() {
     std::ifstream fs(index_file_);
     if (fs.good()) {
         fs.close();
-        load_index(index_file_);
+        load_index();
     } else {
         ConstructLabel(index_file_.c_str());
-        write_index(index_file_);
+        write_index();
     }
 }
 

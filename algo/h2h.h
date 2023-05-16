@@ -35,6 +35,9 @@ struct Tree {
 
 class H2H : public Ch {
    public:
+    H2H(std::shared_ptr<Graph>& graph, std::string index_file, std::string order_file)
+        : Ch(graph, index_file, order_file) {}
+
     void processing() override;
 
     void contraction() override;
@@ -45,8 +48,8 @@ class H2H : public Ch {
 
     inline w_t query(vid_t v, vid_t u) override;
 
-    void load_index(std::string index_file) override;
-    void write_index(std::string index_file) override;
+    void load_index() override;
+    void write_index() override;
 
    private:
     int get_parent(vid_t v, std::vector<vw_pair>& neigh);
@@ -67,13 +70,13 @@ void H2H::processing() {
     std::ifstream fs(index_file_);
     if (fs.good()) {
         fs.close();
-        load_index(index_file_);
+        load_index();
         // load_order(order_file_);
     } else {
         build_ch_index();
         build_tree();
         build_index();
-        write_index(index_file_);
+        write_index();
     }
 }
 
@@ -280,7 +283,7 @@ inline w_t H2H::query(vid_t v, vid_t u) {
     }
 }
 
-void H2H::load_index(std::string index_file) {}
-void H2H::write_index(std::string index_file) {}
+void H2H::load_index() {}
+void H2H::write_index() {}
 
 #endif  // ALGO_H2H_H_

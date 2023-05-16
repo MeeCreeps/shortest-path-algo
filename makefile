@@ -8,6 +8,7 @@ BIN = ${BUILD}/bin
 
 
 ALGO = algo
+TOOLS = toolkits
 GRAPH = graph 
 UTILS = utils
 THIRD = thirdpart
@@ -15,11 +16,19 @@ THIRD = thirdpart
 third_include = -I./${THIRD}/glog/include -I./${THIRD}/gtest -I./${THIRD}/
 
 
-all: dir main
+all: dir ${BIN}/main ${BIN}/generate ${BIN}/benchmark
 dir: mkdir -p ${BIN}
 
-${BIN}/main : ${ALGO}/main.cpp ${ALGO}/*.h ${UTILS}/*.h ${GRAPH}/*.h  ${THIRD}/CLI11.hpp
-	${CXX} ${FLAGS}  -I${ALGO} ${third_include}  $^ -o $@
+${BIN}/main : ${TOOLS}/main.cpp ${ALGO}/*.h ${UTILS}/*.h ${GRAPH}/*.h  ${THIRD}/CLI11.hpp
+	${CXX} ${FLAGS}  ${third_include}  $^ -o $@
+
+
+${BIN}/generate : ${TOOLS}/generate.cpp  ${UTILS}/*.h ${GRAPH}/*.h  ${THIRD}/CLI11.hpp
+	${CXX} ${FLAGS}  ${third_include}  $^ -o $@
+
+${BIN}/benchmark :  ${TOOLS}/benchmark.cpp ${ALGO}/*.h ${UTILS}/*.h ${GRAPH}/*.h  ${THIRD}/CLI11.hpp
+	${CXX} ${FLAGS}   ${third_include}  $^ -o $@
+
 
 
 clean : 
