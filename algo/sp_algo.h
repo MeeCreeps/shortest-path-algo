@@ -7,6 +7,7 @@
 
 class SPAlgo {
    public:
+    SPAlgo() = default;
     SPAlgo(std::shared_ptr<Graph>& graph, std::string index_file) : graph_(graph), index_file_(index_file){};
 
     virtual void processing() = 0;
