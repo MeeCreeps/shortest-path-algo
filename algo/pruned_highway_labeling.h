@@ -55,11 +55,10 @@ class PrunedHighwayLabeling : public SPAlgo {
     void processing() override;
     void load_index() override;
     void write_index() override;
-    inline int query(vid_t v, vid_t u) override;
+    w_t query(vid_t v, vid_t u) override;
 
    private:
     static const int LEVEL = 4;
-    static const int INF = 1000000000;
     static const unsigned GUARD = 0xFFFFFFFFU;
     static const unsigned PATH_MASK = 0xFFFFFC00U;
     static const unsigned NUM_MASK = 0x000003FFU;
@@ -475,7 +474,7 @@ void PrunedHighwayLabeling::write_index() {
     fclose(out);
 }
 
-inline int PrunedHighwayLabeling::query(int v, int w) {
+w_t PrunedHighwayLabeling::query(vid_t v, vid_t w) {
     if (v == w) return 0;
     if (contract[v] == w || contract[w] == v || (contract[v] != -1 && contract[v] == contract[w]))
         return label[v].time + label[w].time;

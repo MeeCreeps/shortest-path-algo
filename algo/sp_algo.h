@@ -14,7 +14,7 @@ class SPAlgo {
     virtual w_t query(vid_t v, vid_t u) = 0;
 
     virtual void load_index() = 0;
-    virtual void write_index();
+    virtual void write_index() = 0;
 
     void batch_query(std::string pair_path);
 
