@@ -1,3 +1,6 @@
+#ifndef ALGO_SP_ALGO_H_
+#define ALGO_SP_ALGO_H_
+
 #include <memory>
 
 #include "graph/graph.h"
@@ -43,3 +46,4 @@ void SPAlgo::batch_query(std::string pair_path) {
     }
     batch_query(query_set);
 }
+#endif  // ALGO_SP_ALGO_H_

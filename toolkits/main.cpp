@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
     // google::InitGoogleLogging(argv[0]);
     CLI::App app{"shortest path query"};
 
-    std::string index_file = "", order_file = "", graph_file = "", query_file = "", order_file = "";
+    std::string index_file = "", order_file = "", graph_file = "", query_file = "";
 
     // algorithm : 0:CH 1:PHL 2:H2H
     // operation : 0:build index  1: query

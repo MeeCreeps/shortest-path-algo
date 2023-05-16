@@ -4,7 +4,6 @@
 #include <algorithm>
 
 #include "ch.h"
-#include "sp_algo.h"
 
 struct Node {
     size_t parent;
@@ -372,7 +371,7 @@ void H2H::write_index() {
     fs << std::endl;
 
     for (auto& RMQi : tree_.RMQIndex) {
-        fs << RMQi.size() >> std::endl;
+        fs << RMQi.size() << std::endl;
 
         for (auto i : RMQi) {
             fs << i << " ";
