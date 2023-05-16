@@ -1,5 +1,5 @@
 CXX = g++ 
-FLAGS = -std=c++17 -lglog -O3
+FLAGS = -std=c++17  -L./build/lib -lglog -O3 
 
 
 
@@ -17,7 +17,7 @@ third_include = -I./${THIRD}/glog/include -I./${THIRD}/gtest -I./${THIRD}/
 
 
 all: dir ${BIN}/main ${BIN}/generate ${BIN}/benchmark
-dir: mkdir -p ${BIN}
+dir: mkdir -p ${BIN} ${BUILD}/lib
 
 ${BIN}/main : ${TOOLS}/main.cpp ${ALGO}/*.h ${UTILS}/*.h ${GRAPH}/*.h  ${THIRD}/CLI11.hpp
 	${CXX} ${FLAGS}  ${third_include}  $^ -o $@
