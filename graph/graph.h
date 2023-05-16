@@ -17,10 +17,9 @@ typedef std::pair<w_t, vid_t> wv_pair;
 typedef std::pair<vid_t, vid_t> vv_pair;
 typedef std::pair<vid_t, std::pair<vid_t, w_t>> ch_nei_pair;  // tuple <dst_id,middle_id,weight> for ch
 const w_t INF = 1e12;
+
 class Graph {
    public:
-    Graph() = default;
-
     void init_from_file(std::string file_name);
     void remove_edge(vid_t u, vid_t v);
     vid_t get_v_size() { return v_size_; };
