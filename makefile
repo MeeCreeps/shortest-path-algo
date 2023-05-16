@@ -1,5 +1,5 @@
 CXX = g++ 
-FLAGS = -std=c++17 -lgflags -O3
+FLAGS = -std=c++17 -lglog -O3
 
 
 
