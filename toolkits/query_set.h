@@ -2,11 +2,11 @@
 #define ANALYSIS_QUERY_SET_H_
 
 #include <memory>
+#include <random>
 #include <string>
 #include <vector>
 
 #include "graph/graph.h"
-
 struct QueryOpt {
     int size_ = 100000;
 };
@@ -24,9 +24,31 @@ class QuerySet {
    private:
     std::shared_ptr<Graph> graph_;
     QueryOpt opt_;
+    std::vector<std::pair<vid_t, vid_t>> generate_randomly();
 };
 
-std::vector<std::pair<vid_t, vid_t>> QuerySet::generate() {}
+std::vector<std::pair<vid_t, vid_t>> QuerySet::generate() {
+    // default:randomly
+    return generate_randomly();
+}
+
+std::vector<std::pair<vid_t, vid_t>> QuerySet::generate_randomly() {
+    std::vector<std::pair<vid_t, vid_t>> query_pairs;
+
+    std::uniform_int_distribution<unsigned> u(0, graph_->v_size_);
+    std::default_random_engine e;
+    e.seed(time(NULL));
+
+    vid_t v1, v2;
+    while (query_pairs.size() < opt_.size_) {
+        v1 = u(e);
+        v2 = u(e);
+        if (v1 != v2) {
+            query_pairs.push_back({v1, v2});
+        }
+    }
+    return query_pairs;
+}
 
 static std::vector<std::pair<vid_t, vid_t>> read_from_file(std::string file_name) {
     std::ifstream file(file_name);
