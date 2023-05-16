@@ -32,7 +32,7 @@ class Ch : public SPAlgo {
    protected:
     void contract_node(vid_t vid);
     w_t bi_dijkstra(vid_t s, vid_t t);
-    std::vector<w_t>& limit_dijkstra(vid_t u, vid_t max_dist, vid_t max_hop);
+    void limit_dijkstra(vid_t u, vid_t max_dist, vid_t max_hop, std::vector<w_t>& dist);
 
     void delete_edge(std::vector<std::map<vid_t, w_t>>& graph, vid_t u, vid_t v);
     void add_edge(std::vector<std::map<vid_t, w_t>>& graph, vid_t u, vid_t v);
@@ -118,7 +118,8 @@ void Ch::contract_node(vid_t vid) {
 
     for (auto& pair : contracted_graph_[vid]) {
         if (contracted_[pair.first]) continue;
-        std::vector<w_t>& dists = limit_dijkstra(pair.first, max_dist, 2);
+        std::vector<w_t> dists(v_size_, -1);
+        limit_dijkstra(pair.first, max_dist, 2, dists);
         for (auto& neighbor : contracted_graph_[vid]) {
             if (invert_order_[pair.first] > invert_order_[neighbor.first]) continue;
             w_t total_w = pair.second + neighbor.second;
@@ -257,10 +258,9 @@ void Ch::add_edge(std::vector<std::map<vid_t, w_t>>& graph, vid_t u, vid_t v) {
 }
 
 // max_hop = 2
-std::vector<w_t>& Ch::limit_dijkstra(vid_t u, vid_t max_dist, vid_t max_hop) {
+void Ch::limit_dijkstra(vid_t u, vid_t max_dist, vid_t max_hop, std::vector<w_t>& dists) {
     std::priority_queue<wv_pair, std::vector<wv_pair>, std::greater<wv_pair>> dist_queue;
 
-    std::vector<w_t> dists(v_size_, -1);
     std::vector<int> hops(v_size_, 0);
 
     dist_queue.push({0, u});
@@ -285,8 +285,6 @@ std::vector<w_t>& Ch::limit_dijkstra(vid_t u, vid_t max_dist, vid_t max_hop) {
             }
         }
     }
-
-    return dists;
 }
 
 w_t Ch::bi_dijkstra(vid_t s, vid_t t) {
