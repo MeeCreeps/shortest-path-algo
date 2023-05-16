@@ -1,5 +1,5 @@
 CXX = g++ 
-FLAGS = -std=c++17  -L./build/lib -lglog -O3 
+FLAGS = -std=c++17  -L./build/lib -lglog  -lgflag -O3
 
 
 
@@ -13,7 +13,7 @@ GRAPH = graph
 UTILS = utils
 THIRD = thirdpart
 
-third_include = -I./${THIRD}/glog/include -I./${THIRD}/gtest -I./${THIRD}/
+third_include = -I./${THIRD}/glog/include -I./${THIRD}/gflag/include -I./${THIRD}/gtest -I./${THIRD}/
 
 
 all: dir ${BIN}/main ${BIN}/generate ${BIN}/benchmark
