@@ -16,7 +16,7 @@ typedef std::pair<vid_t, w_t> vw_pair;
 typedef std::pair<w_t, vid_t> wv_pair;
 typedef std::pair<vid_t, vid_t> vv_pair;
 typedef std::pair<vid_t, std::pair<vid_t, w_t>> ch_nei_pair;  // tuple <dst_id,middle_id,weight> for ch
-const w_t INF = 1e12;
+const w_t INF = std::numeric_limits<int>::max();
 
 class Graph {
    public:

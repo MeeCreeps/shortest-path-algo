@@ -9,7 +9,7 @@ BIN = ${BUILD}/bin
 
 ALGO = algo
 TOOLS = toolkits
-GRAPH = graph 
+GRAPH = graph
 UTILS = utils
 THIRD = thirdpart
 
