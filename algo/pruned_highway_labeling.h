@@ -58,10 +58,10 @@ class PrunedHighwayLabeling : public SPAlgo {
     w_t query(vid_t v, vid_t u) override;
 
    private:
-    static const int LEVEL = 4;
-    static const unsigned GUARD = 0xFFFFFFFFU;
-    static const unsigned PATH_MASK = 0xFFFFFC00U;
-    static const unsigned NUM_MASK = 0x000003FFU;
+    const int LEVEL = 4;
+    const unsigned GUARD = 0xFFFFFFFFU;
+    const unsigned PATH_MASK = 0xFFFFFC00U;
+    const unsigned NUM_MASK = 0x000003FFU;
 
     struct road {
         int from;
