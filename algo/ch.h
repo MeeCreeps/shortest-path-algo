@@ -360,7 +360,7 @@ void Ch::write_order() {
     assert(order_.size() == graph_->get_v_size());
     std::ofstream fs(order_file_);
     for (auto v : order_) {
-        fs << v;
+        fs << v << std::endl;
     }
     fs.close();
     LOG(INFO) << "finsh writing order file";
@@ -390,7 +390,7 @@ void Ch::write_index() {
 
     for (int i = 0; i < contracted_graph_.size(); ++i) {
         for (auto& edge : contracted_graph_[i]) {
-            fs << i << edge.first << edge.second;
+            fs << edge.first << " " << edge.second << std::endl;
         }
     }
     fs.close();

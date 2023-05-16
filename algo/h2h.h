@@ -7,15 +7,14 @@
 #include "sp_algo.h"
 
 struct Node {
-    std::vector<int> pos;
-    std::vector<w_t> dis;
-
-    std::vector<int> child;  // child node ids
-    // std::vector<int> belongs;  // the nodes contains v
-
     size_t parent;
     vid_t master_v;
     size_t height;
+
+    std::vector<int> pos;
+    std::vector<w_t> dis;
+    std::vector<int> child;  // child node ids
+    // std::vector<int> belongs;  // the nodes contains v
     std::vector<int> pivot;  // pivot vertex , for path retrieval
 
 };  // tree node
@@ -283,7 +282,106 @@ inline w_t H2H::query(vid_t v, vid_t u) {
     }
 }
 
-void H2H::load_index() {}
-void H2H::write_index() {}
+void H2H::load_index() {
+    std::ifstream fs(index_file_);
+    int node_size, v_size, euler_s, rmq_s, rmqi_s;
+    if (!fs.good()) {
+        LOG(INFO) << "H2H index file is not exist !";
+        exit(-1);
+    }
+
+    fs >> tree_.height >> tree_.wdith >> node_size >> v_size >> euler_s >> rmq_s >> rmqi_s;
+
+    tree_.vid2node.resize(v_size);
+    tree_.nodes.resize(node_size);
+    tree_.EulerSeq.resize(euler_s);
+    tree_.toRMQ.resize(rmq_s);
+    tree_.RMQIndex.resize(rmqi_s);
+
+    for (int i = 0; i < v_size; ++i) {
+        fs >> tree_.vid2node[i];
+    }
+
+    for (int i = 0; i < node_size; ++i) {
+        Node& node = tree_.nodes[i];
+        int pos_s, dis_s, child_s, pivot_s;
+        fs >> node.parent >> node.master_v >> node.height >> pos_s >> dis_s >> child_s >> pivot_s;
+
+        node.pos.resize(pos_s);
+        node.dis.resize(dis_s);
+        node.child.resize(child_s);
+        node.pivot.resize(pivot_s);
+
+        for (int j = 0; j < pos_s; ++j) fs >> node.pos[j];
+        for (int j = 0; j < dis_s; ++j) fs >> node.dis[j];
+        for (int j = 0; j < child_s; ++j) fs >> node.child[j];
+        for (int j = 0; j < pivot_s; ++j) fs >> node.pivot[j];
+    }
+
+    for (int i = 0; i < euler_s; ++i) fs >> tree_.EulerSeq[i];
+    for (int i = 0; i < rmq_s; ++i) fs >> tree_.toRMQ[i];
+
+    for (int i = 0; i < rmqi_s; ++i) {
+        int i_size;
+        fs >> i_size;
+        tree_.RMQIndex[i].resize(i);
+        for (int j = 0; j < i_size; ++j) {
+            fs >> tree_.RMQIndex[i][j];
+        }
+    }
+    fs.close();
+
+    LOG(INFO) << "finish writing H2H tree index !";
+}
+void H2H::write_index() {
+    std::ofstream fs(index_file_);
+
+    // [height,width,node size , vertex size,EulerSql_s, toRMQ_size, RMQIndex size ]
+    fs << tree_.height << " " << tree_.wdith << " " << tree_.nodes.size() << " " << tree_.vid2node.size() << " "
+       << tree_.EulerSeq.size() << " " << tree_.toRMQ.size() << " " << tree_.RMQIndex.size();
+    fs << std::endl;
+
+    // write vid2node
+    for (int i = 0; i < tree_.vid2node.size(); ++i) {
+        fs << tree_.vid2node[i] << " ";
+    }
+
+    fs << std::endl;
+
+    // write nodes
+    for (int i = 0; i < tree_.nodes.size(); ++i) {
+        Node& node = tree_.nodes[i];
+        fs << node.parent << " " << node.master_v << " " << node.height << " " << node.pos.size() << " "
+           << node.dis.size() << " " << node.child.size() << " " << node.pivot.size() << std::endl;
+
+        // pos vector
+        for (auto p : node.pos) fs << p << " ";
+        fs << std::endl;
+        for (auto d : node.dis) fs << d << " ";
+        fs << std::endl;
+        for (auto c : node.child) fs << c << " ";
+        fs << std::endl;
+        for (auto p : node.pivot) fs << p << " ";
+        fs << std::endl;
+    }
+
+    for (auto s : tree_.EulerSeq) fs << s << " ";
+    fs << std::endl;
+
+    for (auto rmq : tree_.toRMQ) fs << rmq << " ";
+    fs << std::endl;
+
+    for (auto& RMQi : tree_.RMQIndex) {
+        fs << RMQi.size() >> std::endl;
+
+        for (auto i : RMQi) {
+            fs << i << " ";
+        }
+        fs << std::endl;
+    }
+
+    fs.close();
+    LOG(INFO) << "H2H load index finished ";
+}
 
 #endif  // ALGO_H2H_H_
