@@ -71,7 +71,7 @@ void QuerySet::write_to_file(std::string file_name, std::vector<std::pair<vid_t,
     std::ofstream file(file_name);
     file << query_set.size();
     for (auto& pair : query_set) {
-        file << pair.first << pair.second;
+        file << pair.first << " " << pair.second << std::endl;
     }
     LOG(INFO) << "finsh writing query set";
     file.close();
