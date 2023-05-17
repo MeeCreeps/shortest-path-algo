@@ -6,7 +6,7 @@ QUERY=""
 GRAPH=""
 ORDER=""
 INDEX=""
-
+COMMAND=""
 EXEC_MAIN="./build/bin/main"
 EXEC_GENERATE="./build/bin/main"
 EXEC_BENCHMARK="./build/bin/benchmark"
@@ -29,15 +29,17 @@ function process(){
 
     case $2 in 
         "ch")
-            ${EXEC_MAIN} -i ${INDEX} -a 0 -o 0 -g ${GRAPH} --or ${ORDER}
+            COMMAND="${EXEC_MAIN} -i ${INDEX} -a 0 -o 0 -g ${GRAPH} --or ${ORDER}"
             ;; 
         "phl")
-            ${EXEC_MAIN} -i ${INDEX} -a 1 -o 0 -g ${GRAPH}
+            COMMAND="${EXEC_MAIN} -i ${INDEX} -a 1 -o 0 -g ${GRAPH}"
             ;; 
         "h2h")
-            ${EXEC_MAIN} -i ${INDEX} -a 2 -o 0 -g ${GRAPH}  --or ${ORDER}
+            COMMAND="${EXEC_MAIN} -i ${INDEX} -a 2 -o 0 -g ${GRAPH}  --or ${ORDER}"
             ;;
     esac
+    echo "command : ${COMMAND}"
+    ${COMMAND}
     echo "finish building index"
 }
 
@@ -59,15 +61,17 @@ function query(){
     #TODO : add query type
     case $2 in 
         "ch")
-            ${EXEC_MAIN} -i ${INDEX} -a 0 -o 0 -g ${GRAPH}  --or ${ORDER} -q ${QUERY}
+            COMMAND="${EXEC_MAIN} -i ${INDEX} -a 0 -o 0 -g ${GRAPH}  --or ${ORDER} -q ${QUERY}"
             ;; 
         "phl")
-            ${EXEC_MAIN} -i ${INDEX} -a 1 -o 0 -g ${GRAPH} -q ${QUERY}
+            COMMAND="${EXEC_MAIN} -i ${INDEX} -a 1 -o 0 -g ${GRAPH} -q ${QUERY}"
             ;; 
         "h2h")
-            ${EXEC_MAIN} -i ${INDEX} -a 2 -o 0 -g ${GRAPH}  --or ${ORDER} -q ${QUERY}
+            COMMAND="${EXEC_MAIN} -i ${INDEX} -a 2 -o 0 -g ${GRAPH}  --or ${ORDER} -q ${QUERY}"
             ;;
     esac
+    echo "command : ${COMMAND}"
+    ${COMMAND}
     echo "query finish"
 }
 
@@ -78,11 +82,16 @@ function generate(){
         exit 1
     fi
 
+    mkdir -p ${QUERY_PREFIX}
+
     GRAPH="$GRAPH_PREFIX"+"$1"+".txt"
+    QUERY_PREFIX=$EXP/query/$1
     QUERY=${QUERY_PREFIX}/$2+"_"+$3+".txt"
 
-    ${EXEC_GENERATE} -g ${GRAPH} -q ${QUERY}  -s $3
+    COMMAND="${EXEC_GENERATE} -g ${GRAPH} -q ${QUERY}  -s $3"
 
+    echo "command : ${COMMAND}"
+    ${COMMAND}
 }
 
 if [ x$1 != x ]; then
