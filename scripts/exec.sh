@@ -1,3 +1,5 @@
+set -ex 
+
 GRAPH_PREFIX=./data/
 EXP=./exp
 
@@ -6,9 +8,8 @@ QUERY=""
 GRAPH=""
 ORDER=""
 INDEX=""
-COMMAND=""
 EXEC_MAIN="./build/bin/main"
-EXEC_GENERATE="./build/bin/main"
+EXEC_GENERATE="./build/bin/generate"
 EXEC_BENCHMARK="./build/bin/benchmark"
 
 function create_structure(){
@@ -29,17 +30,15 @@ function process(){
 
     case $2 in 
         "ch")
-            COMMAND="${EXEC_MAIN} -i ${INDEX} -a 0 -o 0 -g ${GRAPH} --or ${ORDER}"
+            ${EXEC_MAIN} -i ${INDEX} -a 0 -o 0 -g ${GRAPH} --or ${ORDER}
             ;; 
         "phl")
-            COMMAND="${EXEC_MAIN} -i ${INDEX} -a 1 -o 0 -g ${GRAPH}"
+            ${EXEC_MAIN} -i ${INDEX} -a 1 -o 0 -g ${GRAPH}
             ;; 
         "h2h")
-            COMMAND="${EXEC_MAIN} -i ${INDEX} -a 2 -o 0 -g ${GRAPH}  --or ${ORDER}"
+            ${EXEC_MAIN} -i ${INDEX} -a 2 -o 0 -g ${GRAPH}  --or ${ORDER}
             ;;
     esac
-    echo "command : ${COMMAND}"
-    ${COMMAND}
     echo "finish building index"
 }
 
@@ -61,17 +60,15 @@ function query(){
     #TODO : add query type
     case $2 in 
         "ch")
-            COMMAND="${EXEC_MAIN} -i ${INDEX} -a 0 -o 0 -g ${GRAPH}  --or ${ORDER} -q ${QUERY}"
+            ${EXEC_MAIN} -i ${INDEX} -a 0 -o 0 -g ${GRAPH}  --or ${ORDER} -q ${QUERY}
             ;; 
         "phl")
-            COMMAND="${EXEC_MAIN} -i ${INDEX} -a 1 -o 0 -g ${GRAPH} -q ${QUERY}"
+            ${EXEC_MAIN} -i ${INDEX} -a 1 -o 0 -g ${GRAPH} -q ${QUERY}
             ;; 
         "h2h")
-            COMMAND="${EXEC_MAIN} -i ${INDEX} -a 2 -o 0 -g ${GRAPH}  --or ${ORDER} -q ${QUERY}"
+            ${EXEC_MAIN} -i ${INDEX} -a 2 -o 0 -g ${GRAPH}  --or ${ORDER} -q ${QUERY}
             ;;
     esac
-    echo "command : ${COMMAND}"
-    ${COMMAND}
     echo "query finish"
 }
 
@@ -82,16 +79,16 @@ function generate(){
         exit 1
     fi
 
-    mkdir -p ${QUERY_PREFIX}
+
 
     GRAPH=$GRAPH_PREFIX"$1"".txt"
     QUERY_PREFIX=$EXP/query/$1
     QUERY=${QUERY_PREFIX}/$2"_"$3".txt"
+    
+    mkdir -p ${QUERY_PREFIX}
 
-    COMMAND="${EXEC_GENERATE} -g ${GRAPH} -q ${QUERY}  -s $3"
+    ${EXEC_GENERATE} -g ${GRAPH} -q ${QUERY}  -s $3
 
-    echo "generate command : ${COMMAND}"
-    ${COMMAND}
 }
 
 if [ x$1 != x ]; then
