@@ -164,7 +164,7 @@ void Ch::generate_order() {
 
     _D.resize(v_size, 0);
     _D2.resize(v_size, 0);
-    D2.resize(v_size, 0);
+    D.resize(v_size, 0);
     D2.resize(v_size, 0);
 
     std::vector<bool> removed(v_size, false);

@@ -69,7 +69,7 @@ std::vector<std::pair<vid_t, vid_t>> QuerySet::read_from_file(std::string file_n
 
 void QuerySet::write_to_file(std::string file_name, std::vector<std::pair<vid_t, vid_t>>& query_set) {
     std::ofstream file(file_name);
-    file << query_set.size();
+    file << query_set.size() << std::endl;
     for (auto& pair : query_set) {
         file << pair.first << " " << pair.second << std::endl;
     }

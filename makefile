@@ -1,5 +1,5 @@
 CXX = g++ 
-FLAGS = -std=c++17  -L./build/lib -lglog  -lgflags -O3
+FLAGS = -std=c++17  -L./build/lib -lglog  -lgflags -O3 -g 
 
 
 
@@ -24,7 +24,7 @@ ${BIN}/main : ${TOOLS}/main.cpp $(wildcard ${ALGO}/*.h ${UTILS}/*.h ${GRAPH}/*.h
 	${CXX} ${FLAGS}  ${third_include}  $^ -o $@
 
 
-${BIN}/generate : ${TOOLS}/generate.cpp $(wildcard ${UTILS}/*.h ${GRAPH}/*.h ) ${THIRD}/CLI11.hpp
+${BIN}/generate : ${TOOLS}/generate.cpp $(wildcard ${UTILS}/*.h ${GRAPH}/*.h ) ${THIRD}/CLI11.hpp ${TOOLS}/query_set.h
 	${CXX} ${FLAGS}  ${third_include}  $^ -o $@
 
 ${BIN}/benchmark :  ${TOOLS}/benchmark.cpp  $(wildcard ${ALGO}/*.h ${UTILS}/*.h ${GRAPH}/*.h )  ${THIRD}/CLI11.hpp
