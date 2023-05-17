@@ -1,5 +1,5 @@
 GRAPH_PREFIX=./data/
-EXP=./exp/
+EXP=./exp
 
 QUERY_PREFIX=""
 QUERY=""
@@ -14,7 +14,7 @@ EXEC_BENCHMARK="./build/bin/benchmark"
 function create_structure(){
     INDEX=$EXP/$2/$3/index.txt
     ORDER=$EXP/$2/$3/order.txt
-    GRAPH="$GRAPH_PREFIX"+"$3"+".txt"
+    GRAPH=$GRAPH_PREFIX$3.txt
     QUERY_PREFIX=$EXP/query/$3
 
     mkdir -p ${GRAPH_PREFIX} ${QUERY_PREFIX} ${EXP}/$2/$3
@@ -52,7 +52,7 @@ function query(){
         exit 1
     fi
 
-    QUERY=${QUERY_PREFIX}/$4+"_"+$5+".txt"
+    QUERY=${QUERY_PREFIX}/$4"_"$5".txt"
 
     if ! [ -f "$QUERY" ]; then
         generate $4 $5 $6
@@ -84,13 +84,13 @@ function generate(){
 
     mkdir -p ${QUERY_PREFIX}
 
-    GRAPH="$GRAPH_PREFIX"+"$1"+".txt"
+    GRAPH=$GRAPH_PREFIX"$1"".txt"
     QUERY_PREFIX=$EXP/query/$1
-    QUERY=${QUERY_PREFIX}/$2+"_"+$3+".txt"
+    QUERY=${QUERY_PREFIX}/$2"_"$3".txt"
 
     COMMAND="${EXEC_GENERATE} -g ${GRAPH} -q ${QUERY}  -s $3"
 
-    echo "command : ${COMMAND}"
+    echo "generate command : ${COMMAND}"
     ${COMMAND}
 }
 
