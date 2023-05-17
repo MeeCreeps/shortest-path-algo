@@ -9,6 +9,7 @@
 #include "thirdpart/CLI11.hpp"
 
 int main(int argc, char** argv) {
+    google::InitGoogleLogging(argv[0]);
     CLI::App app{"query set generation"};
     std::string graph_file = "", query_file = "";
 

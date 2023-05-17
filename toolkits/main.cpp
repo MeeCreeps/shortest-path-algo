@@ -8,7 +8,7 @@
 #include "thirdpart/CLI11.hpp"
 
 int main(int argc, char** argv) {
-    // google::InitGoogleLogging(argv[0]);
+    google::InitGoogleLogging(argv[0]);
     CLI::App app{"shortest path query"};
 
     std::string index_file = "", order_file = "", graph_file = "", query_file = "";
