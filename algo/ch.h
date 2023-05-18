@@ -1,6 +1,7 @@
 #ifndef ALGO_CH_H_
 #define ALGO_CH_H_
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <queue>
 #include <set>
@@ -185,11 +186,9 @@ void Ch::generate_order() {
     }
 
     // delay the change of degree
+    int index = 0;
     while (!deg.empty()) {
         vid_t con_v = deg.begin()->v_;
-        order_.push_back(con_v);
-        removed[con_v] = true;
-        deg.erase(deg.begin());
 
         while (true) {
             if (change[con_v]) {
@@ -203,6 +202,9 @@ void Ch::generate_order() {
                 break;
         }
 
+        deg.erase(deg.begin());
+        order_.push_back(con_v);
+        removed[con_v] = true;
         std::vector<vid_t> neigh;
         for (auto& edge : contracted_graph[con_v]) {
             if (removed[edge.first]) continue;
@@ -219,10 +221,10 @@ void Ch::generate_order() {
                 add_edge(contracted_graph, neigh[i], neigh[j]);
             }
         }
+    }
 
-        for (int i = 0; i < order_.size(); ++i) {
-            invert_order_[order_[i]] = i;
-        }
+    for (int i = 0; i < order_.size(); ++i) {
+        invert_order_[order_[i]] = i;
     }
 }
 
