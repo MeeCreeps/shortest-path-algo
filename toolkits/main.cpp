@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
     if (algorithm == 0) {
         algo = std::make_shared<Ch>(graph, index_file, order_file);
     } else if (algorithm == 1) {
-        algo = std::make_shared<PrunedHighwayLabeling>(graph, index_file);
+        algo = std::make_shared<PrunedHighwayLabeling>(graph, index_file, graph_file);
     } else if (algorithm == 2) {
         algo = std::make_shared<H2H>(graph, index_file, order_file);
     } else {

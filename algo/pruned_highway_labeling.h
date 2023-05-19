@@ -40,8 +40,8 @@
 
 class PrunedHighwayLabeling : public SPAlgo {
    public:
-    PrunedHighwayLabeling(std::shared_ptr<Graph> &graph, std::string index_file)
-        : SPAlgo(graph, index_file), V(0), label(NULL), load_time(0), construct_time(0) {}
+    PrunedHighwayLabeling(std::shared_ptr<Graph> &graph, std::string index_file, std::string graph_file)
+        : SPAlgo(graph, index_file), V(0), label(NULL), load_time(0), construct_time(0), graph_file_(graph_file) {}
 
     ~PrunedHighwayLabeling() { Free(); };
 
@@ -62,6 +62,8 @@ class PrunedHighwayLabeling : public SPAlgo {
     const unsigned GUARD = 0xFFFFFFFFU;
     const unsigned PATH_MASK = 0xFFFFFC00U;
     const unsigned NUM_MASK = 0x000003FFU;
+
+    std::string graph_file_;
 
     struct road {
         int from;
@@ -564,7 +566,7 @@ void PrunedHighwayLabeling::processing() {
         fs.close();
         load_index();
     } else {
-        ConstructLabel(index_file_.c_str());
+        ConstructLabel(graph_file_);
         write_index();
     }
 }
