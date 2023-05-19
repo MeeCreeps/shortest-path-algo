@@ -50,6 +50,10 @@ class Ch : public SPAlgo {
     std::vector<bool> contracted_;
     vid_t v_size_;
 
+    int c_index = 0;
+
+    std::vector<int> hops;
+    std::vector<w_t> dists;
     std::string order_file_;
 };
 
@@ -67,6 +71,8 @@ void Ch::processing() {
 
 void Ch::build_ch_index() {
     contracted_graph_.resize(v_size_);
+    hops.assign(v_size_, 0);
+    dists.assign(v_size_, -1);
     // shortcut_node_.resize(v_size_);
 
     for (vid_t i = 0; i < v_size_; ++i) {
@@ -76,13 +82,17 @@ void Ch::build_ch_index() {
     }
 
     LOG(INFO) << " begin generate order:";
-    if (order_.empty()) {
+    std::ifstream fs(order_file_);
+    if (!fs.good()) {
         generate_order();
         write_order();
     } else {
+        fs.close();
         load_order();
     }
-    LOG(INFO) << "generating order finihsed!";
+
+    LOG(INFO) << "generating/load order finihsed!";
+    std::cout << "generating/load  order finihsed!" << std::endl;
 
     perf::Watch watch;
 
@@ -93,7 +103,11 @@ void Ch::build_ch_index() {
 
     contraction();
 
-    LOG(INFO) << "Ch finish contracting, time cost:" << watch.showlit_mills("t1") << " ms";
+    LOG(INFO) << "Ch finish contracting, time cost:" << watch.showlit_mills("t1") << " ," << watch.showlit_seconds("t1")
+              << " ." << std::endl;
+
+    std::cout << "Ch finish contracting, time cost:" << watch.showlit_mills("t1") << " ," << watch.showlit_seconds("t1")
+              << " ." << std::endl;
 }
 
 void Ch::contraction() {
@@ -119,12 +133,12 @@ void Ch::contract_node(vid_t vid) {
 
     for (auto& pair : contracted_graph_[vid]) {
         if (contracted_[pair.first]) continue;
-        std::vector<w_t> dists(v_size_, -1);
+
         limit_dijkstra(pair.first, max_dist, 2, dists);
         for (auto& neighbor : contracted_graph_[vid]) {
             if (invert_order_[pair.first] > invert_order_[neighbor.first]) continue;
             w_t total_w = pair.second + neighbor.second;
-            if (total_w < dists[neighbor.second] || dists[neighbor.second] == -1) {
+            if (total_w < dists[neighbor.first] || dists[neighbor.first] == -1) {
                 // add shortcut
                 contracted_graph_[pair.first][neighbor.first] = total_w;
                 contracted_graph_[neighbor.first][pair.first] = total_w;
@@ -263,19 +277,23 @@ void Ch::add_edge(std::vector<std::map<vid_t, w_t>>& graph, vid_t u, vid_t v) {
 void Ch::limit_dijkstra(vid_t u, vid_t max_dist, vid_t max_hop, std::vector<w_t>& dists) {
     std::priority_queue<wv_pair, std::vector<wv_pair>, std::greater<wv_pair>> dist_queue;
 
-    std::vector<int> hops(v_size_, 0);
+    // std::fill(hops.begin(), hops.end(), 0);
+    // std::fill(dists.begin(), dists.end(), -1);
+
+    std::vector<vid_t> visited;
 
     dist_queue.push({0, u});
     while (!dist_queue.empty()) {
         vid_t vid = dist_queue.top().second;
         w_t dist = dist_queue.top().first;
+        dist_queue.pop();
+        visited.push_back(vid);
 
         if (dist > dists[vid]) continue;
         if (hops[vid] > max_hop) continue;
         if (dists[vid] > max_dist) break;
 
         for (auto& vw : contracted_graph_[vid]) {
-            // undirected
             if (contracted_[vw.first]) continue;
             dist = dists[vid] + vw.second;
             if (dists[vw.first] == -1 || dists[vw.first] > dist) {
@@ -286,6 +304,11 @@ void Ch::limit_dijkstra(vid_t u, vid_t max_dist, vid_t max_hop, std::vector<w_t>
                 // shortcut_node_[{u, vw.first}] = v;
             }
         }
+    }
+
+    for (auto v : visited) {
+        dists[v] = -1;
+        hops[v] = 0;
     }
 }
 
@@ -353,7 +376,8 @@ void Ch::load_order() {
         invert_order_[order_[i]] = i;
     }
     fs.close();
-    LOG(INFO) << "finish loading order file";
+    LOG(INFO) << "LOG << finish loading order file" << std::endl;
+    std::cout << "finish loading order file" << std::endl;
 }
 
 void Ch::write_order() {
@@ -386,11 +410,11 @@ void Ch::load_index() {
 void Ch::write_index() {
     std::ofstream fs(index_file_);
 
-    fs << contracted_graph_.size();
+    fs << contracted_graph_.size() << std::endl;
 
     for (int i = 0; i < contracted_graph_.size(); ++i) {
         for (auto& edge : contracted_graph_[i]) {
-            fs << edge.first << " " << edge.second << std::endl;
+            fs << i << " " << edge.first << " " << edge.second << std::endl;
         }
     }
     fs.close();

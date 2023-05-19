@@ -2,6 +2,7 @@ set -ex
 
 GRAPH_PREFIX=./data/
 EXP=./exp
+LOG=./log
 
 QUERY_PREFIX=""
 QUERY=""
@@ -18,7 +19,7 @@ function create_structure(){
     GRAPH=$GRAPH_PREFIX$3.txt
     QUERY_PREFIX=$EXP/query/$3
 
-    mkdir -p ${GRAPH_PREFIX} ${QUERY_PREFIX} ${EXP}/$2/$3
+    mkdir -p ${GRAPH_PREFIX} ${QUERY_PREFIX} ${EXP}/$2/$3 ${LOG}/generate ${LOG}/query ${LOG}/process
 }
 
 function process(){
@@ -30,13 +31,13 @@ function process(){
 
     case $2 in 
         "ch")
-            ${EXEC_MAIN} -i ${INDEX} -a 0 -o 0 -g ${GRAPH} --or ${ORDER}
+            ${EXEC_MAIN} -i ${INDEX} -a 0 -o 0 -g ${GRAPH} --or ${ORDER}  --log_dir=${LOG}/process/$2-$3-
             ;; 
         "phl")
-            ${EXEC_MAIN} -i ${INDEX} -a 1 -o 0 -g ${GRAPH}
+            ${EXEC_MAIN} -i ${INDEX} -a 1 -o 0 -g ${GRAPH} --log_dir=${LOG}/process/$2-$3-
             ;; 
         "h2h")
-            ${EXEC_MAIN} -i ${INDEX} -a 2 -o 0 -g ${GRAPH}  --or ${ORDER}
+            ${EXEC_MAIN} -i ${INDEX} -a 2 -o 0 -g ${GRAPH}  --or ${ORDER} --log_dir=${LOG}/process/$2-$3-
             ;;
     esac
     echo "finish building index"
@@ -60,13 +61,13 @@ function query(){
     #TODO : add query type
     case $2 in 
         "ch")
-            ${EXEC_MAIN} -i ${INDEX} -a 0 -o 0 -g ${GRAPH}  --or ${ORDER} -q ${QUERY}
+            ${EXEC_MAIN} -i ${INDEX} -a 0 -o 0 -g ${GRAPH}  --or ${ORDER} -q ${QUERY} --log_dir=${LOG}/query/$2-$3-$4-$5-
             ;; 
         "phl")
-            ${EXEC_MAIN} -i ${INDEX} -a 1 -o 0 -g ${GRAPH} -q ${QUERY}
+            ${EXEC_MAIN} -i ${INDEX} -a 1 -o 0 -g ${GRAPH} -q ${QUERY} --log_dir=${LOG}/query/$2-$3-$4-$5-
             ;; 
         "h2h")
-            ${EXEC_MAIN} -i ${INDEX} -a 2 -o 0 -g ${GRAPH}  --or ${ORDER} -q ${QUERY}
+            ${EXEC_MAIN} -i ${INDEX} -a 2 -o 0 -g ${GRAPH}  --or ${ORDER} -q ${QUERY} --log_dir=${LOG}/query/$2-$3-$4-$5-
             ;;
     esac
     echo "query finish"
@@ -87,7 +88,7 @@ function generate(){
     
     mkdir -p ${QUERY_PREFIX}
 
-    ${EXEC_GENERATE} -g ${GRAPH} -q ${QUERY}  -s $3
+    ${EXEC_GENERATE} -g ${GRAPH} -q ${QUERY}  -s $3 --log_dir=${LOG}/generate/$2-$3-
 
 }
 

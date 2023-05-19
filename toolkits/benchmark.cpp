@@ -9,7 +9,6 @@
 #include "thirdpart/CLI11.hpp"
 
 int main(int argc, char** argv) {
-    google::InitGoogleLogging(argv[0]);
     CLI::App app{"query set generation"};
     std::string graph_file = "", query_file = "";
 
@@ -19,7 +18,18 @@ int main(int argc, char** argv) {
     app.add_option("-q,--query", query_file, "query pair path")->required();
     app.add_option("-s,--size", opt.size_, "query size, default 100000 ");
 
+    std::string log_dir;  // Variable to store log directory
+    app.add_option("--log_dir", log_dir, "Set the log directory");
+
     CLI11_PARSE(app, argc, argv);
+
+    if (!log_dir.empty()) {
+        google::SetLogDestination(google::GLOG_INFO, log_dir.c_str());
+    }
+    google::InitGoogleLogging(argv[0]);
+
+    LOG(INFO) << "command :" << argv[0];
+
     std::shared_ptr<Graph> graph = std::make_shared<Graph>(graph_file);
     std::shared_ptr<QuerySet> query_set = std::make_shared<QuerySet>(graph, opt);
 

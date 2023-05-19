@@ -71,9 +71,26 @@ void H2H::processing() {
         load_index();
         // load_order(order_file_);
     } else {
+        perf::Watch watch;
+
+        VERBOSE(watch.mark("t-ch");)
         build_ch_index();
+
+        VERBOSE(LOG(INFO) << "Ch finish contracting, time cost:" << watch.showlit_mills("t-ch") << " ,"
+                          << watch.showlit_seconds("t-ch") << " ." << std::endl;)
+
+        VERBOSE(watch.mark("t-tree");)
         build_tree();
+        VERBOSE(LOG(INFO) << "build tree structure  time cost:" << watch.showlit_mills("t-tree") << " ,"
+                          << watch.showlit_seconds("t-tree") << " ." << std::endl;)
+
+        VERBOSE(watch.mark("t-index");)
         build_index();
+        VERBOSE(LOG(INFO) << "build index array, time cost:" << watch.showlit_mills("t-index") << " ,"
+                          << watch.showlit_seconds("t-index") << " ." << std::endl;
+
+                LOG(INFO) << "build total index  time cost:" << watch.showlit_mills("t-index") << " ,"
+                          << watch.showlit_seconds("t-index") << " ." << std::endl;)
         write_index();
     }
 }

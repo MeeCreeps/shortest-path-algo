@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "graph/graph.h"
+#include "utils/config.h"
 
 class SPAlgo {
    public:
