@@ -35,7 +35,7 @@ std::vector<std::pair<vid_t, vid_t>> QuerySet::generate() {
 std::vector<std::pair<vid_t, vid_t>> QuerySet::generate_randomly() {
     std::vector<std::pair<vid_t, vid_t>> query_pairs;
 
-    std::uniform_int_distribution<unsigned> u(0, graph_->v_size_);
+    std::uniform_int_distribution<unsigned> u(0, graph_->v_size_ - 1);
     std::default_random_engine e;
     e.seed(time(NULL));
 
@@ -65,6 +65,8 @@ std::vector<std::pair<vid_t, vid_t>> QuerySet::read_from_file(std::string file_n
         file >> u >> v;
         query_set.push_back({u, v});
     }
+
+    return query_set;
 }
 
 void QuerySet::write_to_file(std::string file_name, std::vector<std::pair<vid_t, vid_t>>& query_set) {

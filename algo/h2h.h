@@ -6,7 +6,7 @@
 #include "ch.h"
 
 struct Node {
-    size_t parent;
+    int parent;
     vid_t master_v;
     size_t height;
 
@@ -14,7 +14,7 @@ struct Node {
     std::vector<w_t> dis;
     std::vector<int> child;  // child node ids
     // std::vector<int> belongs;  // the nodes contains v
-    std::vector<int> pivot;  // pivot vertex , for path retrieval
+    std::vector<int> pivot;  // pivot vertex  ,  for path retrieval
 
 };  // tree node
 
@@ -22,13 +22,13 @@ struct Tree {
     std::vector<Node> nodes;
     std::vector<int> vid2node;
     size_t height;  // tree height
-    size_t wdith;   // tree width
+    size_t width;   // tree width
 
     std::vector<int> EulerSeq;  // prepare for the LCA calculation
     std::vector<int> toRMQ;
     std::vector<std::vector<int>> RMQIndex;
 
-    Tree() : height(0), wdith(0) {}
+    Tree() : height(0), width(0) {}
 };
 
 class H2H : public Ch {
@@ -40,6 +40,8 @@ class H2H : public Ch {
 
     void contraction() override;
 
+    void contract_node(vid_t vid, int index) override;
+
     void build_tree();
 
     void build_index();
@@ -49,14 +51,17 @@ class H2H : public Ch {
     void load_index() override;
     void write_index() override;
 
+    void statistics() override;
+
    private:
     int get_parent(vid_t v, std::vector<vw_pair>& neigh);
+
     int get_lca(int _p, int _q);
 
     void dfs_build_index(int p, std::vector<int>& list);
     // build index  for lca query.
     //  refer to  M. A. Bender and M. Farach-Colton. The lca problem revisited.
-    //  In Proc. of LASTI’00, pages 88–94, 2000
+    //  In Proc. of LASTI’00 ,  pages 88–94 ,  2000
     void build_rmq();
     void rmq_dfs(int p);
 
@@ -72,25 +77,21 @@ void H2H::processing() {
         // load_order(order_file_);
     } else {
         perf::Watch watch;
-
-        VERBOSE(watch.mark("t-ch");)
+        VERBOSE(watch.mark("t-total");)
         build_ch_index();
-
-        VERBOSE(LOG(INFO) << "Ch finish contracting, time cost:" << watch.showlit_mills("t-ch") << " ,"
-                          << watch.showlit_seconds("t-ch") << " ." << std::endl;)
 
         VERBOSE(watch.mark("t-tree");)
         build_tree();
-        VERBOSE(LOG(INFO) << "build tree structure  time cost:" << watch.showlit_mills("t-tree") << " ,"
+        VERBOSE(LOG(INFO) << "build tree structure  time cost:" << watch.showlit_mills("t-tree") << "  , "
                           << watch.showlit_seconds("t-tree") << " ." << std::endl;)
 
         VERBOSE(watch.mark("t-index");)
         build_index();
-        VERBOSE(LOG(INFO) << "build index array, time cost:" << watch.showlit_mills("t-index") << " ,"
+        VERBOSE(LOG(INFO) << "build index array ,  time cost:" << watch.showlit_mills("t-index") << "  , "
                           << watch.showlit_seconds("t-index") << " ." << std::endl;
 
-                LOG(INFO) << "build total index  time cost:" << watch.showlit_mills("t-index") << " ,"
-                          << watch.showlit_seconds("t-index") << " ." << std::endl;)
+                LOG(INFO) << "build total index  time cost:" << watch.showlit_mills("t-total") << "  , "
+                          << watch.showlit_seconds("t-total") << " ." << std::endl;)
         write_index();
     }
 }
@@ -99,12 +100,50 @@ void H2H::contraction() {
     remained_neigh.resize(v_size_);
     for (auto v : order_) {
         for (auto& edge : contracted_graph_[v]) {
-            if (contracted_[edge.first])
-                continue;
-            else
-                remained_neigh[v].push_back(edge);
+            remained_neigh[v].push_back(edge);
         }
-        contract_node(v);
+        contract_node(v, 0);
+    }
+}
+
+void H2H::contract_node(vid_t vid, int index) {
+    contracted_[vid] = true;
+
+    std::vector<short_cut> final_short;
+
+    if (contracted_graph_[vid].size() > 1) {
+        for (auto& e1 : contracted_graph_[vid]) {
+            vid_t v1 = e1.first;
+            w_t d1 = e1.second;
+            for (auto& e2 : contracted_graph_[vid]) {
+                if (invert_order_[e2.first] <= invert_order_[v1]) continue;
+                w_t d2 = e2.second + d1;
+                vid_t v2 = e2.first;
+                final_short.push_back({v1, {v2, d2}});
+            }
+        }
+    }
+
+    for (auto& edge : remained_neigh[vid]) {
+        vid_t v = edge.first;
+        contracted_graph_[v].erase(vid);
+    }
+    contracted_graph_[vid].clear();
+
+    for (auto& cuts : final_short) {
+        vid_t v1 = cuts.first;
+        vid_t v2 = cuts.second.first;
+        w_t w = cuts.second.second;
+
+        // add shortcuts for final graph (for index saving)
+        // TODO : change remained_graph
+
+        auto iter1 = contracted_graph_[v1].find(v2);
+
+        if (iter1 != contracted_graph_[v1].end() && iter1->second <= w) continue;
+
+        contracted_graph_[v1][v2] = w;
+        contracted_graph_[v2][v1] = w;
     }
 }
 
@@ -125,7 +164,7 @@ void H2H::build_tree() {
     tree_.nodes.push_back(node);
     tree_.vid2node.resize(v_size_, -1);
     tree_.vid2node[v] = 0;
-
+    idx--;
     for (; idx >= 0; idx--) {
         v = order_[idx];
         int parent = get_parent(v, remained_neigh[v]);
@@ -138,7 +177,7 @@ void H2H::build_tree() {
 
         tree_.vid2node[v] = tree_.nodes.size();
         tree_.nodes.push_back(node);
-        tree_.wdith = std::max(tree_.wdith, remained_neigh[v].size());
+        tree_.width = std::max(tree_.width, remained_neigh[v].size());
         tree_.height = std::max(tree_.height, node.height);
     }
 }
@@ -174,7 +213,7 @@ void H2H::dfs_build_index(int p, std::vector<int>& list) {
     tree_.nodes[p].dis.assign(list.size(), INF);
 
     // pos
-    // map<int,Nei> Nmap; Nmap.clear();//shortcut infor ordered by the pos ID
+    // map<int , Nei> Nmap; Nmap.clear();//shortcut infor ordered by the pos ID
 
     // TODO  sort by order ?
     for (int i = 0; i < nei_size; i++) {
@@ -250,7 +289,7 @@ int H2H::get_parent(vid_t v, std::vector<vw_pair>& neigh) {
     int parent = tree_.vid2node[neigh[0].first];
     for (int i = 1; i < neigh.size(); ++i) {
         assert(tree_.vid2node[neigh[i].first] != -1);
-        if (parent > tree_.vid2node[neigh[i].first]) {
+        if (parent < tree_.vid2node[neigh[i].first]) {
             parent = tree_.vid2node[neigh[i].first];
         }
     }
@@ -306,7 +345,7 @@ void H2H::load_index() {
         exit(-1);
     }
 
-    fs >> tree_.height >> tree_.wdith >> node_size >> v_size >> euler_s >> rmq_s >> rmqi_s;
+    fs >> tree_.height >> tree_.width >> node_size >> v_size >> euler_s >> rmq_s >> rmqi_s;
 
     tree_.vid2node.resize(v_size);
     tree_.nodes.resize(node_size);
@@ -340,7 +379,7 @@ void H2H::load_index() {
     for (int i = 0; i < rmqi_s; ++i) {
         int i_size;
         fs >> i_size;
-        tree_.RMQIndex[i].resize(i);
+        tree_.RMQIndex[i].resize(i_size);
         for (int j = 0; j < i_size; ++j) {
             fs >> tree_.RMQIndex[i][j];
         }
@@ -349,11 +388,12 @@ void H2H::load_index() {
 
     LOG(INFO) << "finish writing H2H tree index !";
 }
+
 void H2H::write_index() {
     std::ofstream fs(index_file_);
 
-    // [height,width,node size , vertex size,EulerSql_s, toRMQ_size, RMQIndex size ]
-    fs << tree_.height << " " << tree_.wdith << " " << tree_.nodes.size() << " " << tree_.vid2node.size() << " "
+    // [height , width , node size  ,  vertex size , EulerSql_s ,  toRMQ_size ,  RMQIndex size ]
+    fs << tree_.height << " " << tree_.width << " " << tree_.nodes.size() << " " << tree_.vid2node.size() << " "
        << tree_.EulerSeq.size() << " " << tree_.toRMQ.size() << " " << tree_.RMQIndex.size();
     fs << std::endl;
 
@@ -398,6 +438,61 @@ void H2H::write_index() {
 
     fs.close();
     LOG(INFO) << "H2H load index finished ";
+}
+
+void H2H::statistics() {
+    long long psize = 0, dsize = 0;
+
+    for (int i = 0; i < tree_.nodes.size(); ++i) {
+        Node& node = tree_.nodes[i];
+        psize += node.pos.size();
+        dsize += node.dis.size();
+    }
+
+    long long rmqs=0;
+    for (int i = 0; i < tree_.RMQIndex.size(); ++i) {
+        rmqs += tree_.RMQIndex[i].size();
+    }
+
+    LOG(INFO) << "**********tree statistics**********" << std::endl;
+    LOG(INFO) << "tree height:" << tree_.height << " , tree width:" << tree_.width << std::endl;
+
+    LOG(INFO) << "tree pos size:" << psize << " , average:" << (double)psize / tree_.nodes.size()
+              << " , mem usage:" << psize * sizeof(int) / 1024.0 / 1024.0 << "MB"
+              << " , " << psize * sizeof(int) / 1024.0 / 1024.0 / 1024.0 << "GB" << std::endl;
+
+    LOG(INFO) << "tree dis size:" << dsize << " , average:" << (double)dsize / tree_.nodes.size()
+              << " , mem usage:" << dsize * sizeof(int) / 1024.0 / 1024.0 << "MB"
+              << " , " << dsize * sizeof(int) / 1024.0 / 1024.0 / 1024.0 << "GB" << std::endl;
+
+    LOG(INFO) << "**********LCA statistics**********" << std::endl;
+    LOG(INFO) << "EulerSeq size:" << tree_.EulerSeq.size() << " , mem "
+              << " , mem usage:" << tree_.EulerSeq.size() * sizeof(int) / 1024.0 / 1024.0 << "MB"
+              << " , " << tree_.EulerSeq.size() * sizeof(int) / 1024.0 / 1024.0 / 1024.0 << "GB" << std::endl;
+    LOG(INFO) << "toRMQ size:" << tree_.toRMQ.size() << " , mem "
+              << " , mem usage:" << tree_.toRMQ.size() * sizeof(int) / 1024.0 / 1024.0 << "MB"
+              << " , " << tree_.toRMQ.size() * sizeof(int) / 1024.0 / 1024.0 / 1024.0 << "GB" << std::endl;
+    LOG(INFO) << "RMQIndex size: 1." << tree_.RMQIndex.size() << " 2." << rmqs
+              << " , mem usage:" << rmqs * sizeof(int) / 1024.0 / 1024.0 << "MB"
+              << " , " << rmqs * sizeof(int) / 1024.0 / 1024.0 / 1024.0 << "GB" << std::endl;
+
+    double lca_mem = (rmqs + tree_.EulerSeq.size() + tree_.RMQIndex.size()) * sizeof(int) / 1024.0 / 1024.0;
+    double index_mem = (dsize + psize) * sizeof(int) / 1024.0 / 1024.0;
+
+    LOG(INFO) << "LCA total mem:" << lca_mem << "MB"
+              << " , " << lca_mem / 1024.0 << "GB" << std::endl;
+
+    LOG(INFO) << "tree index mem :" << index_mem << "MB"
+              << " , " << index_mem / 1024 << "GB" << std::endl;
+
+    LOG(INFO) << "total mem :" << (index_mem + lca_mem) << "MB"
+              << " , " << (index_mem + lca_mem) / 1024 << "GB" << std::endl;
+
+    perf::mem_status mstatus;
+    perf::get_mem_usage(&mstatus);
+
+    LOG(INFO) << "exact mem usage(system ):" << (double)mstatus.vm_rss / 1024.0 << "MB"
+              << " , " << (double)mstatus.vm_rss / 1024.0 / 1024.0 << "GB" << std::endl;
 }
 
 #endif  // ALGO_H2H_H_

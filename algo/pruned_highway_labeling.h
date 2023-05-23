@@ -50,7 +50,7 @@ class PrunedHighwayLabeling : public SPAlgo {
     void Free(void);
 
     int NumVertices(void) { return V; }
-    void Statistics(void);
+    void statistics(void) override;
 
     void processing() override;
     void load_index() override;
@@ -524,6 +524,7 @@ w_t PrunedHighwayLabeling::query(vid_t v, vid_t w) {
             wf++;
         }
     }
+    return time;
 }
 
 void PrunedHighwayLabeling::Free(void) {
@@ -540,7 +541,7 @@ void PrunedHighwayLabeling::Free(void) {
     label = NULL;
 }
 
-void PrunedHighwayLabeling::Statistics(void) {
+void PrunedHighwayLabeling::statistics(void) {
     long long sum_label = 0, sum_memory = 0;
 
     for (int v = 0; v < V; v++) {
@@ -566,7 +567,13 @@ void PrunedHighwayLabeling::processing() {
         fs.close();
         load_index();
     } else {
-        ConstructLabel(graph_file_);
+        perf::Watch watch;
+        watch.mark("t1");
+
+        ConstructLabel(graph_file_.c_str());
+
+        LOG(INFO) << "phl build index, time cost:" << construct_time<<" load time:"<<load_time << std::endl;
+
         write_index();
     }
 }

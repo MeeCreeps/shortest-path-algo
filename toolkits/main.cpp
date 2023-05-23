@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
     std::string index_file = "", order_file = "", graph_file = "", query_file = "";
 
     // algorithm : 0:CH 1:PHL 2:H2H
-    // operation : 0:build index  1: query
+    // operation : 0:build index  1: query 3:static
     int operation = -1, algorithm = 0;
 
     app.add_option("-i,--index", index_file, "index saving path")->required();
@@ -36,7 +36,11 @@ int main(int argc, char** argv) {
     LOG(INFO) << "command :" << argv[0];
 
     std::shared_ptr<SPAlgo> algo;
-    std::shared_ptr<Graph> graph = std::make_shared<Graph>(graph_file);
+    std::shared_ptr<Graph> graph;
+
+    if (algorithm != 1) {
+        graph = std::make_shared<Graph>(graph_file);
+    }
 
     if ((algorithm == 0 || algorithm == 2) && order_file.empty()) {
         LOG(INFO) << "please provide with order file !";
@@ -49,6 +53,8 @@ int main(int argc, char** argv) {
         algo = std::make_shared<PrunedHighwayLabeling>(graph, index_file, graph_file);
     } else if (algorithm == 2) {
         algo = std::make_shared<H2H>(graph, index_file, order_file);
+    } else if (algorithm == -1) {
+        algo = std::make_shared<SPAlgo>(graph, index_file);
     } else {
         LOG(INFO) << "unknow algo:";
         exit(-1);
@@ -61,6 +67,9 @@ int main(int argc, char** argv) {
             LOG(INFO) << "query file is not exist!";
             exit(-1);
         }
+
+        algo->load_index();
+
         std::vector<std::pair<vid_t, vid_t>> query_pairs = QuerySet::read_from_file(query_file);
 
         LOG(INFO) << "start query";
@@ -70,9 +79,20 @@ int main(int argc, char** argv) {
 
         algo->batch_query(query_pairs);
 
-        LOG(INFO) << "query finish, time cost:" << watch.showlit_mills("t1") << " ms";
+        LOG(INFO) << "query [total time cost:" << watch.showlit_micros("t1") << "," << watch.showlit_mills("t1") << ","
+                  << watch.showlit_seconds("t1") << "]"
+                  << "[ average time cost:" << watch.showavg_micros("t1", query_pairs.size()) << ","
+                  << watch.showavg_mills("t1", query_pairs.size()) << ","
+                  << watch.showavg_seconds("t1", query_pairs.size()) << "]";
 
-    } else {
+    }else if(operation ==2){
+
+        algo->load_index();
+        algo->statistics();
+
+
+    }
+    else {
         LOG(INFO) << "unsupport operation ! ";
     }
 }

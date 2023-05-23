@@ -45,10 +45,19 @@ inline double current_milliseconds(void) {
     return tv.tv_sec * 1000UL + tv.tv_usec / 1000UL;
 }
 
+inline double current_microseconds(void) {
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    return tv.tv_sec *  1000000UL  + tv.tv_usec;
+}
+
 class Watch {
    public:
     // start a new mark
-    void mark(const std::string& smark) { mark_[smark] = current_milliseconds(); }
+    void mark(const std::string& smark) {
+        mark_[smark] = current_milliseconds();
+        micro_mark_[smark] = current_microseconds();
+    }
 
     // return a mark's cost in milliseconds
     double show(const std::string& smark) { return current_milliseconds() - mark_[smark]; }
@@ -56,13 +65,33 @@ class Watch {
     // return a mark's cost in milliseconds
     std::string showlit_mills(const std::string& smark) {
         double cost = current_milliseconds() - mark_[smark];
-        return std::string(std::to_string(cost) + "ms");
+        return std::string(std::to_string(cost) + " ms");
+    }
+
+    std::string showlit_micros(const std::string& smark) {
+        double cost = current_microseconds() - micro_mark_[smark];
+        return std::string(std::to_string(cost) + " us");
     }
 
     // return a mark's cost in milliseconds
     std::string showlit_seconds(const std::string& smark) {
         double cost = current_milliseconds() - mark_[smark];
-        return std::string(std::to_string(cost / 1000.0) + "s");
+        return std::string(std::to_string(cost / 1000.0) + " s");
+    }
+
+    std::string showavg_mills(const std::string& smark, int num) {
+        double cost = (current_milliseconds() - mark_[smark]) / num;
+        return std::string(std::to_string(cost) + " ms");
+    }
+
+    std::string showavg_micros(const std::string& smark, int num) {
+        double cost = (current_microseconds() - micro_mark_[smark]) / num;
+        return std::string(std::to_string(cost) + " us");
+    }
+
+    std::string showavg_seconds(const std::string& smark, int num) {
+        double cost = (current_milliseconds() - mark_[smark]) / num;
+        return std::string(std::to_string(cost / 1000.0) + " s");
     }
 
     // remove mark and return its cost
@@ -74,6 +103,7 @@ class Watch {
 
    protected:
     std::map<std::string, double> mark_;
+    std::map<std::string, double> micro_mark_;
 };
 
 }  // namespace perf
