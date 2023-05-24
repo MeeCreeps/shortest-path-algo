@@ -15,6 +15,8 @@ class Ch : public SPAlgo {
         v_size_ = graph_->v_size_;
     }
 
+    Ch(std::string index_file) : SPAlgo(index_file) {}
+
     // void init_contracted_graph();
     void processing() override;
     void build_ch_index();
@@ -30,21 +32,23 @@ class Ch : public SPAlgo {
 
     inline w_t query(vid_t v, vid_t u) { return bi_dijkstra(v, u); }
 
-    virtual void contract_node(vid_t vid, int index);
+    void batch_query(const std::vector<std::pair<vid_t, vid_t>>& v_pair_lists) override;
 
-    void contract_node(vid_t vid){};
+    virtual void contract_node(vid_t vid, bool is_ori);
+
+    void contract_node(vid_t vid);
 
     void statistics() override;
 
    protected:
-    w_t bi_dijkstra(vid_t s, vid_t t);
+    inline w_t bi_dijkstra(vid_t s, vid_t t);
 
     std::vector<short_cut> get_shortcuts(vid_t b_node, vid_t m_node, std::vector<vw_pair>& pairs, w_t max_d);
 
     void limit_dijkstra(vid_t u, vid_t max_dist, vid_t max_hop, std::vector<w_t>& dist, std::vector<vid_t>& visited);
 
-    void delete_edge(std::vector<std::map<vid_t, w_t>>& graph, vid_t u, vid_t v);
-    void add_edge(std::vector<std::map<vid_t, w_t>>& graph, vid_t u, vid_t v);
+    void delete_edge(std::vector<std::vector<vw_pair>>& graph, vid_t u, vid_t v);
+    void add_edge(std::vector<std::vector<vw_pair>>& graph, vid_t u, vid_t v);
 
     // <order , vertex_id >
     std::vector<vid_t> order_;
@@ -52,12 +56,9 @@ class Ch : public SPAlgo {
     std::vector<vid_t> invert_order_;
 
     // perhaps use unordered_map
-    std::vector<std::map<vid_t, w_t>> contracted_graph_;
+    std::vector<std::vector<vw_pair>> cgraph_;
 
-    std::vector<std::map<vid_t, vid_t>> shortcut_node_;
-
-    // use for contracting nodes
-    std::vector<std::map<vid_t, w_t>> cgraph_;
+    // std::vector<std::map<vid_t, vid_t>> shortcut_node_;
 
     std::vector<bool> contracted_;
     vid_t v_size_;
@@ -66,8 +67,13 @@ class Ch : public SPAlgo {
     int index = 0;
     int in_index = 0;
 
-    std::vector<int> changed;
+    // for bi_dijkstra
+    std::vector<w_t> dist_s;
+    std::vector<w_t> dist_t;
+
+    // for dijkstra
     std::vector<w_t> dists;
+
     std::string order_file_;
 };
 
@@ -85,18 +91,15 @@ void Ch::processing() {
 
 void Ch::build_ch_index() {
     perf::Watch watch;
-
-    contracted_graph_.resize(v_size_);
+    watch.mark("t1");
     cgraph_.resize(v_size_);
 
-    changed.assign(v_size_, false);
     dists.assign(v_size_, INF);
     // shortcut_node_.resize(v_size_);
 
     for (vid_t i = 0; i < v_size_; ++i) {
         for (auto& edge : graph_->neighbors_[i]) {
-            contracted_graph_[i].insert({edge.first, edge.second});
-            cgraph_[i].insert({edge.first, edge.second});
+            cgraph_[i].push_back({edge.first, edge.second});
         }
     }
 
@@ -120,7 +123,6 @@ void Ch::build_ch_index() {
     std::cout << "generating/load  order finihsed!" << std::endl;
 
     contracted_.resize(graph_->get_v_size(), false);
-    watch.mark("t1");
 
     LOG(INFO) << "Ch start contracting";
 
@@ -134,62 +136,66 @@ void Ch::build_ch_index() {
 }
 
 void Ch::contraction() {
-    perf::Watch watch;
-    watch.mark("t1");
-
     for (auto v : order_) {
-        index++;
-        if (index % 1000 == 0) {
-            LOG(INFO) << "index:" << index << " " << watch.showlit_mills("t1") << " ," << watch.showlit_seconds("t1")
-                      << " ." << std::endl;
-        }
-        contract_node(v, index);
+        contract_node(v);
     }
 }
 
-// void Ch::contract_node(vid_t vid) {
-//     assert(!contracted_[vid]);
-//     contracted_[vid] = true;
+void Ch::contract_node(vid_t vid) {
+    assert(!contracted_[vid]);
+    contracted_[vid] = true;
 
-//     w_t max_dist = 0, sec_dist = 0;
-//     for (auto& pair : contracted_graph_[vid]) {
-//         if (contracted_[pair.first]) continue;
-//         if (pair.second > max_dist) {
-//             max_dist = pair.second;
-//         } else if (pair.second > sec_dist) {
-//             sec_dist = pair.second;
-//         }
-//     }
-//     max_dist += sec_dist;
+    std::vector<short_cut> final_short;
 
-//     for (auto& pair : contracted_graph_[vid]) {
-//         if (contracted_[pair.first]) continue;
-//         std::vector<vid_t> visited;
-//         limit_dijkstra(pair.first, max_dist, 2, dists, visited);
-//         for (auto& neighbor : contracted_graph_[vid]) {
-//             if (invert_order_[pair.first] >= invert_order_[neighbor.first]) continue;
-//             w_t total_w = pair.second + neighbor.second;
+    if (cgraph_[vid].size() > 1) {
+        for (auto& e1 : cgraph_[vid]) {
+            vid_t v1 = e1.first;
+            w_t d1 = e1.second;
+            for (auto& e2 : cgraph_[vid]) {
+                if (invert_order_[e2.first] <= invert_order_[v1]) continue;
+                w_t d2 = e2.second + d1;
+                vid_t v2 = e2.first;
+                final_short.push_back({v1, {v2, d2}});
+            }
+        }
+    }
 
-//             if (total_w < dists[neighbor.first]) {
-//                 // add shortcut
-//                 contracted_graph_[pair.first][neighbor.first] = total_w;
-//                 // contracted_graph_[neighbor.first][pair.first] = total_w;
+    for (auto& edge : cgraph_[vid]) {
+        vid_t v = edge.first;
+        for (auto iter = cgraph_[v].begin(); iter != cgraph_[v].end(); ++iter) {
+            if (iter->first == vid) {
+                cgraph_[v].erase(iter);
+                break;
+            }
+        }
+    }
+    // cgraph_[vid].clear();
 
-//                 // TODO add support vertex
-//                 // form low level to high level node
+    for (auto& cuts : final_short) {
+        vid_t v1 = cuts.first;
+        vid_t v2 = cuts.second.first;
+        w_t w = cuts.second.second;
 
-//                 // shortcut_node_[pair.first][neighbor.first] = vid;
-//             }
-//         }
+        // order(v1) < order(v2)
 
-//         for (auto v : visited) {
-//             dists[v] = INF;
-//             changed[v] = false;
-//         }
-//     }
-// }
+        // add shortcuts for final graph (for index saving)
+        // TODO : change remained_graph
+        bool find = false;
+        for (auto iter = cgraph_[v1].begin(); iter != cgraph_[v1].end(); ++iter) {
+            if (iter->first == v2) {
+                find = true;
+                if (iter->second > w) iter->second = w;
+                break;
+            }
+        }
 
-void Ch::contract_node(vid_t vid, int index) {
+        if (!find) {
+            cgraph_[v1].push_back({v2, w});
+        }
+    }
+}
+
+void Ch::contract_node(vid_t vid, bool is_ori) {
     assert(!contracted_[vid]);
     contracted_[vid] = true;
 
@@ -225,21 +231,47 @@ void Ch::contract_node(vid_t vid, int index) {
     // remove edges related with vid
     for (auto& edge : cgraph_[vid]) {
         vid_t v = edge.first;
-        cgraph_[v].erase(vid);
+        for (auto iter = cgraph_[v].begin(); iter != cgraph_[v].end(); ++iter) {
+            if (iter->first == vid) {
+                cgraph_[v].erase(iter);
+                break;
+            }
+        }
     }
-    cgraph_[vid].clear();
 
     // add shortcuts
     for (auto& cuts : final_short) {
         vid_t v1 = cuts.first;
         vid_t v2 = cuts.second.first;
         w_t w = cuts.second.second;
-        cgraph_[v1][v2] = w;
-        cgraph_[v2][v1] = w;
 
         // add shortcuts for final graph (for index saving)
-        contracted_graph_[v1][v2] = w;
-        contracted_graph_[v2][v1] = w;
+        bool find = false;
+        for (auto iter = cgraph_[v1].begin(); iter != cgraph_[v1].end(); ++iter) {
+            if (iter->first == v2) {
+                find = true;
+                if (iter->second > w) iter->second = w;
+                break;
+            }
+        }
+
+        if (!find) {
+            cgraph_[v1].push_back({v2, w});
+        }
+
+        find = false;
+
+        for (auto iter = cgraph_[v2].begin(); iter != cgraph_[v2].end(); ++iter) {
+            if (iter->first == v1) {
+                find = true;
+                if (iter->second > w) iter->second = w;
+                break;
+            }
+        }
+
+        if (!find) {
+            cgraph_[v2].push_back({v1, w});
+        }
     }
 }
 
@@ -266,7 +298,7 @@ void Ch::generate_order() {
     invert_order_.resize(v_size, 0);
 
     // copy graph
-    auto contracted_graph = contracted_graph_;
+    auto contracted_graph = cgraph_;
 
     _D.resize(v_size, 0);
     _D2.resize(v_size, 0);
@@ -333,38 +365,53 @@ void Ch::generate_order() {
     }
 }
 
-void Ch::delete_edge(std::vector<std::map<vid_t, w_t>>& graph, vid_t u, vid_t v) {
-    auto iter = graph[u].find(v);
-    if (iter != graph[u].end()) {
-        graph[u].erase(iter);
-        D[u]--;
+void Ch::delete_edge(std::vector<std::vector<vw_pair>>& graph, vid_t u, vid_t v) {
+    for (auto iter = graph[u].begin(); iter != graph[u].end(); ++iter) {
+        if (iter->first == v) {
+            graph[u].erase(iter);
+            D[u]--;
+            break;
+        }
     }
-
-    iter = graph[v].find(u);
-    if (iter != graph[v].end()) {
-        graph[v].erase(iter);
-        D[v]--;
+    for (auto iter = graph[v].begin(); iter != graph[v].end(); ++iter) {
+        if (iter->first == u) {
+            graph[v].erase(iter);
+            D[v]--;
+            break;
+        }
     }
 }
 
-void Ch::add_edge(std::vector<std::map<vid_t, w_t>>& graph, vid_t u, vid_t v) {
-    auto iter = graph[u].find(v);
-
-    if (iter == graph[u].end()) {
-        graph[u].insert({v, 1});
+void Ch::add_edge(std::vector<std::vector<vw_pair>>& graph, vid_t u, vid_t v) {
+    bool find = false;
+    for (auto iter = graph[u].begin(); iter != graph[u].end(); ++iter) {
+        if (iter->first == v) {
+            find = true;
+            break;
+        }
+    }
+    if (!find) {
+        graph[u].push_back({v, 1});
         D[u]++;
         D2[u]++;
     }
+    find = false;
+    for (auto iter = graph[v].begin(); iter != graph[v].end(); ++iter) {
+        if (iter->first == u) {
+            find = true;
+            break;
+        }
+    }
 
-    iter = graph[v].find(u);
-    if (iter == graph[v].end()) {
-        graph[v].insert({u, 1});
+    if (!find) {
+        graph[v].push_back({u, 1});
         D[v]++;
         D2[v]++;
     }
 }
 
 // max_hop = 2
+// expired function
 void Ch::limit_dijkstra(vid_t u, vid_t max_dist, vid_t max_hop, std::vector<w_t>& dists, std::vector<vid_t>& visited) {
     std::priority_queue<wv_h_pair, std::vector<wv_h_pair>, std::greater<wv_h_pair>> dist_queue;
 
@@ -380,15 +427,14 @@ void Ch::limit_dijkstra(vid_t u, vid_t max_dist, vid_t max_hop, std::vector<w_t>
         w_t hop = dist_queue.top().second.second;
         dist_queue.pop();
 
-        changed[vid] = true;
         if (dist > dists[vid]) continue;
 
         visited.push_back(vid);
 
         // if (hop >= max_hop) continue;
 
-        for (auto& vw : contracted_graph_[vid]) {
-            if (contracted_[vw.first] || changed[vw.first]) continue;
+        for (auto& vw : cgraph_[vid]) {
+            if (contracted_[vw.first]) continue;
             new_dist = dist + vw.second;
             if (new_dist >= max_dist) continue;
 
@@ -411,7 +457,7 @@ std::vector<short_cut> Ch::get_shortcuts(vid_t b_node, vid_t m_node, std::vector
     dists[b_node] = 0;
     dq.push({0, {b_node, 0}});
     std::vector<vid_t> visited;
-    // add changed
+
     while (!dq.empty()) {
         vid_t v = dq.top().second.first;
         w_t w = dq.top().first;
@@ -464,7 +510,7 @@ std::vector<short_cut> Ch::get_shortcuts(vid_t b_node, vid_t m_node, std::vector
 w_t Ch::bi_dijkstra(vid_t s, vid_t t) {
     std::priority_queue<wv_pair, std::vector<wv_pair>, std::greater<wv_pair>> ds_queue, dt_queue;
 
-    std::vector<w_t> dist_s(v_size_, INF), dist_t(v_size_, INF);
+    std::vector<vid_t> visted_s, visted_t;
 
     dist_s[s] = 0, dist_t[t] = 0;
     ds_queue.push({0, s});
@@ -479,13 +525,17 @@ w_t Ch::bi_dijkstra(vid_t s, vid_t t) {
             s_w = ds_queue.top().first;
             ds_queue.pop();
 
+            visted_s.push_back(s_u);
+
             if (s_w > dist_s[s_u]) continue;
             if (dist_s[s_u] < min_dist) {
-                for (auto& edge : contracted_graph_[s_u]) {
+                for (auto& edge : cgraph_[s_u]) {
                     s_w = edge.second + dist_s[s_u];
                     if (dist_s[edge.first] <= s_w) continue;
                     dist_s[edge.first] = s_w;
                     ds_queue.push({s_w, edge.first});
+
+                    visted_s.push_back(edge.first);
                 }
                 min_dist = std::min(min_dist, dist_s[s_u] + dist_t[s_u]);
             }
@@ -496,19 +546,42 @@ w_t Ch::bi_dijkstra(vid_t s, vid_t t) {
             t_w = dt_queue.top().first;
             dt_queue.pop();
 
+            visted_t.push_back(t_u);
+
             if (t_w > dist_t[t_u]) continue;
             if (dist_t[t_u] < min_dist) {
-                for (auto& edge : contracted_graph_[t_u]) {
+                for (auto& edge : cgraph_[t_u]) {
                     t_w = edge.second + dist_t[t_u];
                     if (dist_t[edge.first] <= t_w) continue;
                     dist_t[edge.first] = t_w;
+
                     dt_queue.push({t_w, edge.first});
+                    visted_t.push_back(edge.first);
                 }
                 min_dist = std::min(min_dist, dist_s[t_u] + dist_t[t_u]);
             }
         }
     }
+
+    for (int i = 0; i < visted_s.size(); i++) {
+        dist_s[visted_s[i]] = INF;
+    }
+    for (int i = 0; i < visted_t.size(); i++) {
+        dist_t[visted_t[i]] = INF;
+    }
+
     return min_dist;
+}
+
+void Ch::batch_query(const std::vector<std::pair<vid_t, vid_t>>& v_pair_lists) {
+    dist_s.assign(v_size_, INF);
+    dist_t.assign(v_size_, INF);
+
+    std::vector<w_t> weight;
+    for (auto& p : v_pair_lists) {
+        weight.push_back(query(p.first, p.second));
+        SHOW_DIST(LOG(INFO) << " u:" << p.first << " v:" << p.second << " sp:" << weight.back();)
+    }
 }
 
 void Ch::load_order() {
@@ -546,12 +619,12 @@ void Ch::load_index() {
     w_t weight;
     fs >> v_size_;
 
-    contracted_graph_.resize(v_size_);
+    cgraph_.resize(v_size_);
 
     while (fs >> u >> v >> weight) {
         // contracted graph saved same edges twice
-        contracted_graph_[u].insert({v, weight});
-        // contracted_graph_[v].insert({u, weight});
+        cgraph_[u].push_back({v, weight});
+        // cgraph_[v].insert({u, weight});
     }
     fs.close();
 
@@ -562,10 +635,10 @@ void Ch::load_index() {
 void Ch::write_index() {
     std::ofstream fs(index_file_);
 
-    fs << contracted_graph_.size() << std::endl;
+    fs << cgraph_.size() << std::endl;
 
-    for (int i = 0; i < contracted_graph_.size(); ++i) {
-        for (auto& edge : contracted_graph_[i]) {
+    for (int i = 0; i < cgraph_.size(); ++i) {
+        for (auto& edge : cgraph_[i]) {
             if (invert_order_[edge.first] > invert_order_[i])
                 fs << i << " " << edge.first << " " << edge.second << std::endl;
         }
@@ -577,7 +650,7 @@ void Ch::statistics() {
     long long index_size = 0;
 
     for (int i = 0; i < v_size_; ++i) {
-        index_size += contracted_graph_[i].size();
+        index_size += cgraph_[i].size();
     }
 
     long long mem_mb = index_size * sizeof(int) * 2 / 1024.0 / 1024;
@@ -589,7 +662,7 @@ void Ch::statistics() {
     perf::get_mem_usage(&mstatus);
 
     LOG(INFO) << "mem usage:" << (double)mstatus.vm_rss / 1024.0 << "MB"
-              << " , " << (double)mstatus.vm_rss / 1024.0 / 1024.0 << "GB"<<std::endl;
+              << " , " << (double)mstatus.vm_rss / 1024.0 / 1024.0 << "GB" << std::endl;
 }
 
 #endif  // ALGO_CH_H_

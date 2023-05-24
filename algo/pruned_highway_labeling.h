@@ -43,6 +43,12 @@ class PrunedHighwayLabeling : public SPAlgo {
     PrunedHighwayLabeling(std::shared_ptr<Graph> &graph, std::string index_file, std::string graph_file)
         : SPAlgo(graph, index_file), V(0), label(NULL), load_time(0), construct_time(0), graph_file_(graph_file) {}
 
+    // just for query
+    PrunedHighwayLabeling(std::string index_file)
+        : SPAlgo(index_file), V(0), label(NULL), load_time(0), construct_time(0) {}
+
+
+
     ~PrunedHighwayLabeling() { Free(); };
 
     void ConstructLabel(const char *file);
@@ -163,7 +169,10 @@ void PrunedHighwayLabeling::ConstructLabel(const char *file) {
     // read graph
     // each line should contain two vertices, travel time and geometrical length
     // treat a graph as an undirected graph
-    load_time = -GetTime();
+
+    perf::Watch watch;
+    watch.mark("t-load");
+
     std::vector<std::vector<edge>> graph;
     {
         std::vector<road> edges;
@@ -190,7 +199,8 @@ void PrunedHighwayLabeling::ConstructLabel(const char *file) {
             graph[to].push_back({from, time, level});
         }
     }
-    load_time += GetTime();
+
+    LOG(INFO) << "phl load time cost:" << watch.showlit_seconds("t-load") << " ." << std::endl;
 
     // allocate memory for labels
     label = (label_t *)memalign(64, sizeof(label_t) * V);
@@ -206,7 +216,7 @@ void PrunedHighwayLabeling::ConstructLabel(const char *file) {
     }
 
     // contract degree one vertices and order vertices
-    construct_time = -GetTime();
+    watch.mark("t-con");
     std::vector<std::vector<int>> order(LEVEL);
     {
         // contract degree one vertices
@@ -397,7 +407,8 @@ void PrunedHighwayLabeling::ConstructLabel(const char *file) {
             }
         }
     }
-    construct_time += GetTime();
+
+    LOG(INFO) << "phl construction , time cost:" << watch.showlit_seconds("t-con") << " ." << std::endl;
 }
 
 void PrunedHighwayLabeling::load_index() {
@@ -568,11 +579,9 @@ void PrunedHighwayLabeling::processing() {
         load_index();
     } else {
         perf::Watch watch;
-        watch.mark("t1");
+
 
         ConstructLabel(graph_file_.c_str());
-
-        LOG(INFO) << "phl build index, time cost:" << construct_time<<" load time:"<<load_time << std::endl;
 
         write_index();
     }

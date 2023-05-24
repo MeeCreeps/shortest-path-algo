@@ -55,24 +55,24 @@ function query(){
 
     QUERY=${QUERY_PREFIX}/$4"_"$5".txt"
 
-    if ! [ -f "$QUERY" ]; then
+    if ! [ -f "$QUERY" ] && [ $4 = '1' ]; then
         generate $3 $4 $5 
     fi
 
     #TODO : add query type
     case $2 in 
         "ch")
-            ${EXEC_MAIN} -i ${INDEX} -a 0 -o 1 -g ${GRAPH}  --or ${ORDER} -q ${QUERY} --log_dir=${LOG}/query/$2/$3-$4-$5-
+            ${EXEC_MAIN} -i ${INDEX} -a 0 -o 1 -t $4 -g ${GRAPH}  --or ${ORDER} -q ${QUERY} --log_dir=${LOG}/query/$2/$3-$4-$5-
             ;; 
         "phl")
             GRAPH=$GRAPH_PREFIX$3-phl.txt
-            ${EXEC_MAIN} -i ${INDEX} -a 1 -o 1 -g ${GRAPH} -q ${QUERY} --log_dir=${LOG}/query/$2/$3-$4-$5-
+            ${EXEC_MAIN} -i ${INDEX} -a 1 -o 1 -t $4 -g ${GRAPH} -q ${QUERY} --log_dir=${LOG}/query/$2/$3-$4-$5-
             ;; 
         "h2h")
-            ${EXEC_MAIN} -i ${INDEX} -a 2 -o 1 -g ${GRAPH}  --or ${ORDER} -q ${QUERY} --log_dir=${LOG}/query/$2/$3-$4-$5-
+            ${EXEC_MAIN} -i ${INDEX} -a 2 -o 1 -t $4 -g ${GRAPH}  --or ${ORDER} -q ${QUERY} --log_dir=${LOG}/query/$2/$3-$4-$5-
             ;;
         "dj")
-            ${EXEC_MAIN} -i ${INDEX} -a -1 -o 1 -g ${GRAPH}  --or ${ORDER} -q ${QUERY} --log_dir=${LOG}/query/$2/$3-$4-$5-
+            ${EXEC_MAIN} -i ${INDEX} -a -1 -o 1 -t $4 -g ${GRAPH}  --or ${ORDER} -q ${QUERY} --log_dir=${LOG}/query/$2/$3-$4-$5-
             ;;
     esac
     echo "query finish"
@@ -117,7 +117,16 @@ function generate(){
     
     mkdir -p ${QUERY_PREFIX} ${LOG}/generate/$1
 
-    ${EXEC_GENERATE} -g ${GRAPH} -q ${QUERY}  -s $3 --log_dir=${LOG}/generate/$1/$2-$3-
+    if [ $2 = '2' ]; then 
+        INDEX=$EXP/h2h/$1/index.txt
+         ${EXEC_GENERATE} -g ${GRAPH} -q ${QUERY} -t $2 -s $3 --log_dir=${LOG}/generate/$1/$2-$3- -i ${INDEX}
+    else
+         ${EXEC_GENERATE} -g ${GRAPH} -q ${QUERY} -t $2 -s $3 --log_dir=${LOG}/generate/$1/$2-$3-
+    fi 
+
+
+
+
 
 }
 
@@ -132,7 +141,7 @@ if [ x$1 != x ]; then
       query  "$@"; exit 0
     elif [ $1 = 'statis' ]; then
       create_structure "$@"
-      # query ch usa 1 10000
+      # statis ch usa 
       statis  "$@"; exit 0
     elif [ $1 = 'generate' ]; then
       #generate [graph] [query type] [size] 

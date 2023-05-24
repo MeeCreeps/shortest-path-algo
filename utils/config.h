@@ -7,7 +7,7 @@
 
 #define INULL(x) 
 
-#define SHOW_DIST(x)  x
+#define SHOW_DIST(x) 
 
 
 #endif  // UTILS_CONFIG_H_

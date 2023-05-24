@@ -6,12 +6,15 @@
 
 #include "graph/graph.h"
 #include "utils/config.h"
-
+#include "utils/perf.h"
 class SPAlgo {
    public:
     SPAlgo() = default;
 
     SPAlgo(std::shared_ptr<Graph>& graph, std::string index_file) : graph_(graph), index_file_(index_file){};
+
+    // just for query , 
+    SPAlgo(std::string index_file) : index_file_(index_file){};
 
     virtual void processing(){};
     virtual inline w_t query(vid_t v, vid_t u);

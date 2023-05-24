@@ -36,11 +36,11 @@ class H2H : public Ch {
     H2H(std::shared_ptr<Graph>& graph, std::string index_file, std::string order_file)
         : Ch(graph, index_file, order_file) {}
 
+    H2H(std::string index_file) : Ch(index_file) {}
+
     void processing() override;
 
     void contraction() override;
-
-    void contract_node(vid_t vid, int index) override;
 
     void build_tree();
 
@@ -99,51 +99,10 @@ void H2H::processing() {
 void H2H::contraction() {
     remained_neigh.resize(v_size_);
     for (auto v : order_) {
-        for (auto& edge : contracted_graph_[v]) {
+        for (auto& edge : cgraph_[v]) {
             remained_neigh[v].push_back(edge);
         }
-        contract_node(v, 0);
-    }
-}
-
-void H2H::contract_node(vid_t vid, int index) {
-    contracted_[vid] = true;
-
-    std::vector<short_cut> final_short;
-
-    if (contracted_graph_[vid].size() > 1) {
-        for (auto& e1 : contracted_graph_[vid]) {
-            vid_t v1 = e1.first;
-            w_t d1 = e1.second;
-            for (auto& e2 : contracted_graph_[vid]) {
-                if (invert_order_[e2.first] <= invert_order_[v1]) continue;
-                w_t d2 = e2.second + d1;
-                vid_t v2 = e2.first;
-                final_short.push_back({v1, {v2, d2}});
-            }
-        }
-    }
-
-    for (auto& edge : remained_neigh[vid]) {
-        vid_t v = edge.first;
-        contracted_graph_[v].erase(vid);
-    }
-    contracted_graph_[vid].clear();
-
-    for (auto& cuts : final_short) {
-        vid_t v1 = cuts.first;
-        vid_t v2 = cuts.second.first;
-        w_t w = cuts.second.second;
-
-        // add shortcuts for final graph (for index saving)
-        // TODO : change remained_graph
-
-        auto iter1 = contracted_graph_[v1].find(v2);
-
-        if (iter1 != contracted_graph_[v1].end() && iter1->second <= w) continue;
-
-        contracted_graph_[v1][v2] = w;
-        contracted_graph_[v2][v1] = w;
+        contract_node(v);
     }
 }
 
@@ -449,7 +408,7 @@ void H2H::statistics() {
         dsize += node.dis.size();
     }
 
-    long long rmqs=0;
+    long long rmqs = 0;
     for (int i = 0; i < tree_.RMQIndex.size(); ++i) {
         rmqs += tree_.RMQIndex[i].size();
     }

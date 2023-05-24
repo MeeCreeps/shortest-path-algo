@@ -17,13 +17,14 @@ int main(int argc, char** argv) {
 
     // algorithm : 0:CH 1:PHL 2:H2H
     // operation : 0:build index  1: query 3:static
-    int operation = -1, algorithm = 0;
+    int operation = -1, algorithm = 0, query_type = -1;
 
     app.add_option("-i,--index", index_file, "index saving path")->required();
     app.add_option("-a,--algo", algorithm, "algorithm")->required();
     app.add_option("-o,--operator", operation, "operation")->required();
     app.add_option("-g,--graph", graph_file, "graph data path")->required();
     app.add_option("-q,--query", query_file, "query pair path");
+    app.add_option("-t,--type", query_type, "query type");
 
     app.add_option("--or", order_file, "order file");
     CLI11_PARSE(app, argc, argv);
@@ -69,30 +70,49 @@ int main(int argc, char** argv) {
         }
 
         algo->load_index();
-
-        std::vector<std::pair<vid_t, vid_t>> query_pairs = QuerySet::read_from_file(query_file);
-
-        LOG(INFO) << "start query";
-
         perf::Watch watch;
-        watch.mark("t1");
+        if (query_type == 1) {
+            std::vector<std::pair<vid_t, vid_t>> query_pairs = QuerySet::read_from_file(query_file);
 
-        algo->batch_query(query_pairs);
+            LOG(INFO) << "start query";
 
-        LOG(INFO) << "query [total time cost:" << watch.showlit_micros("t1") << "," << watch.showlit_mills("t1") << ","
-                  << watch.showlit_seconds("t1") << "]"
-                  << "[ average time cost:" << watch.showavg_micros("t1", query_pairs.size()) << ","
-                  << watch.showavg_mills("t1", query_pairs.size()) << ","
-                  << watch.showavg_seconds("t1", query_pairs.size()) << "]";
+            watch.mark("t1");
+            algo->batch_query(query_pairs);
+            LOG(INFO) << "query [total time cost:" << watch.showlit_micros("t1") << "," << watch.showlit_mills("t1")
+                      << "," << watch.showlit_seconds("t1") << "]"
+                      << "[ average time cost:" << watch.showavg_micros("t1", query_pairs.size()) << ","
+                      << watch.showavg_mills("t1", query_pairs.size()) << ","
+                      << watch.showavg_seconds("t1", query_pairs.size()) << "]";
 
-    }else if(operation ==2){
+        } else if (query_type == 2) {
+            for (int i = 1; i <= DEFAULT_GRROUP_COUNT; ++i) {
+                std::string flag = "t" + std::to_string(i);
+                std::string file_name = query_file + "_Q" + std::to_string(i);
+                std::vector<std::pair<vid_t, vid_t>> query_pairs = QuerySet::read_from_file(file_name);
 
+                watch.mark(flag);
+                algo->batch_query(query_pairs);
+
+                LOG(INFO) << "**********query type:"
+                          << " Q" << std::to_string(i) << " **********" << std::endl;
+
+                LOG(INFO) << "query [total time cost:" << watch.showlit_micros(flag) << "," << watch.showlit_mills(flag)
+                          << "," << watch.showlit_seconds(flag) << "]"
+                          << "[ average time cost:" << watch.showavg_micros(flag, query_pairs.size()) << ","
+                          << watch.showavg_mills(flag, query_pairs.size()) << ","
+                          << watch.showavg_seconds(flag, query_pairs.size()) << "]";
+            }
+
+        } else {
+            LOG(INFO) << " unkown query type!" << std::endl;
+            exit(-1);
+        }
+
+    } else if (operation == 2) {
         algo->load_index();
         algo->statistics();
 
-
-    }
-    else {
+    } else {
         LOG(INFO) << "unsupport operation ! ";
     }
 }
