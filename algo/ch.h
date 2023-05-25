@@ -25,8 +25,15 @@ class Ch : public SPAlgo {
 
     void load_order();
     void write_order();
-    void load_index();
-    void write_index();
+
+    void load_index() { read_binary(); };
+    void write_index() { write_binary(); };
+
+    virtual void write_binary();
+    virtual void read_binary();
+
+    virtual void write_original();
+    virtual void read_original();
 
     void generate_order();
 
@@ -608,7 +615,7 @@ void Ch::write_order() {
     LOG(INFO) << "finsh writing order file";
 }
 
-void Ch::load_index() {
+void Ch::read_original() {
     std::ifstream fs(index_file_);
 
     if (!fs.good()) {
@@ -632,7 +639,7 @@ void Ch::load_index() {
     load_order();
 }
 
-void Ch::write_index() {
+void Ch::write_original() {
     std::ofstream fs(index_file_);
 
     fs << cgraph_.size() << std::endl;
@@ -663,6 +670,50 @@ void Ch::statistics() {
 
     LOG(INFO) << "mem usage:" << (double)mstatus.vm_rss / 1024.0 << "MB"
               << " , " << (double)mstatus.vm_rss / 1024.0 / 1024.0 << "GB" << std::endl;
+}
+
+void Ch::write_binary() {
+    std::ofstream fs(index_file_, std::ios::binary);
+
+    int size = cgraph_.size();
+
+    fs.write((char*)&size, sizeof(int));
+
+    for (int i = 0; i < cgraph_.size(); ++i) {
+        for (auto& edge : cgraph_[i]) {
+            if (invert_order_[edge.first] > invert_order_[i]) {
+                fs.write((char*)&i, sizeof(i));
+                fs.write((char*)&edge.first, sizeof(int));
+                fs.write((char*)&edge.second, sizeof(int));
+            }
+        }
+    }
+    fs.close();
+}
+void Ch::read_binary() {
+    std::ifstream fs(index_file_, std::ios::binary);
+
+    if (!fs.good()) {
+        LOG(INFO) << "index file is not exist ! processing first";
+        exit(-1);
+    }
+    vid_t u, v;
+    w_t weight;
+
+    fs.read((char*)&v_size_, sizeof(int));
+    cgraph_.resize(v_size_);
+
+    while (!fs.eof()) {
+        fs.read((char*)&u, sizeof(int));
+        fs.read((char*)&v, sizeof(int));
+        fs.read((char*)&weight, sizeof(int));
+        cgraph_[u].push_back({v, weight});
+    }
+
+    fs.close();
+
+    // load_order
+    load_order();
 }
 
 #endif  // ALGO_CH_H_

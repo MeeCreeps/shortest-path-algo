@@ -47,8 +47,6 @@ class PrunedHighwayLabeling : public SPAlgo {
     PrunedHighwayLabeling(std::string index_file)
         : SPAlgo(index_file), V(0), label(NULL), load_time(0), construct_time(0) {}
 
-
-
     ~PrunedHighwayLabeling() { Free(); };
 
     void ConstructLabel(const char *file);
@@ -501,7 +499,7 @@ w_t PrunedHighwayLabeling::query(vid_t v, vid_t w) {
     _mm_prefetch(vs, _MM_HINT_T0);
     _mm_prefetch(wf, _MM_HINT_T0);
     _mm_prefetch(ws, _MM_HINT_T0);
-
+    
     while (true) {
         if ((*vf & PATH_MASK) == (*wf & PATH_MASK)) {
             if (*vf == GUARD) return time + label[v].time + label[w].time;
@@ -566,6 +564,8 @@ void PrunedHighwayLabeling::statistics(void) {
     }
     sum_memory += sizeof(int) * sum_label * 2;
 
+    LOG(INFO) << "mem usage: " << sum_memory / 1024.0 / 1024.0 << " MB," << sum_memory / 1024.0 / 1024.0 / 1024.0
+              << " GB" << std::endl;
     printf("Load Time : %lf sec\n", load_time);
     printf("Construct Time : %lf sec\n", construct_time);
     printf("Average Label Size : %lld\n", sum_label / V);
@@ -579,7 +579,6 @@ void PrunedHighwayLabeling::processing() {
         load_index();
     } else {
         perf::Watch watch;
-
 
         ConstructLabel(graph_file_.c_str());
 

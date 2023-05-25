@@ -49,6 +49,20 @@ int main(int argc, char** argv) {
             query_set->write_to_file(file, query_pairs[i - 1]);
         }
 
+    } else if (opt.type_ == 3) {
+
+        std::shared_ptr<SPAlgo> algo = std::make_shared<H2H>(index_file);
+        algo->load_index();
+
+        std::shared_ptr<QuerySet> query_set = std::make_shared<QuerySet>(graph, algo);
+        std::vector<std::vector<std::pair<vid_t, vid_t>>> query_pairs = query_set->generate_by_diameter();
+
+        // for (int i = 1; i <= query_pairs.size(); ++i) {
+        //     std::string file = query_file + "_Q" + std::to_string(i);
+        //     query_set->write_to_file(file, query_pairs[i - 1]);
+        // }
+
+
     } else {
         LOG(INFO) << " unkown query type!" << std::endl;
     }

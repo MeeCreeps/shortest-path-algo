@@ -85,22 +85,25 @@ int main(int argc, char** argv) {
                       << watch.showavg_seconds("t1", query_pairs.size()) << "]";
 
         } else if (query_type == 2) {
-            for (int i = 1; i <= DEFAULT_GRROUP_COUNT; ++i) {
-                std::string flag = "t" + std::to_string(i);
-                std::string file_name = query_file + "_Q" + std::to_string(i);
-                std::vector<std::pair<vid_t, vid_t>> query_pairs = QuerySet::read_from_file(file_name);
+            int times = 10;
+            for (int j = 0; j < times; ++j) {
+                for (int i = DEFAULT_GRROUP_COUNT; i >= 1; --i) {
+                    std::string flag = "t" + std::to_string(i);
+                    std::string file_name = query_file + "_Q" + std::to_string(i);
+                    std::vector<std::pair<vid_t, vid_t>> query_pairs = QuerySet::read_from_file(file_name);
 
-                watch.mark(flag);
-                algo->batch_query(query_pairs);
+                    watch.mark(flag);
+                    algo->batch_query(query_pairs);
 
-                LOG(INFO) << "**********query type:"
-                          << " Q" << std::to_string(i) << " **********" << std::endl;
+                    LOG(INFO) << "**********query type:"
+                              << " Q" << std::to_string(i) << " **********" << std::endl;
 
-                LOG(INFO) << "query [total time cost:" << watch.showlit_micros(flag) << "," << watch.showlit_mills(flag)
-                          << "," << watch.showlit_seconds(flag) << "]"
-                          << "[ average time cost:" << watch.showavg_micros(flag, query_pairs.size()) << ","
-                          << watch.showavg_mills(flag, query_pairs.size()) << ","
-                          << watch.showavg_seconds(flag, query_pairs.size()) << "]";
+                    LOG(INFO) << "query [total time cost:" << watch.showlit_micros(flag) << ","
+                              << watch.showlit_mills(flag) << "," << watch.showlit_seconds(flag) << "]"
+                              << "[ average time cost:" << watch.showavg_micros(flag, query_pairs.size()) << ","
+                              << watch.showavg_mills(flag, query_pairs.size()) << ","
+                              << watch.showavg_seconds(flag, query_pairs.size()) << "]";
+                }
             }
 
         } else {

@@ -1,7 +1,6 @@
 CXX = g++ 
-FLAGS = -std=c++17  -L./build/lib -lglog  -lgflags -O3 -g 
-
-
+FLAGS = -std=c++17  -L./build/lib -lglog  -lgflags  -g -O3
+## -O3
 
 BUILD = build
 BIN = ${BUILD}/bin
@@ -20,7 +19,7 @@ all: dir ${BIN}/main ${BIN}/generate ${BIN}/benchmark
 dir: 
 	mkdir -p ${BIN} ${BUILD}/lib
 
-${BIN}/main : ${TOOLS}/main.cpp $(wildcard ${ALGO}/*.h ${UTILS}/*.h ${GRAPH}/*.h ) ${THIRD}/CLI11.hpp
+${BIN}/main : ${TOOLS}/main.cpp $(wildcard ${ALGO}/*.h ${UTILS}/*.h ${GRAPH}/*.h ) ${THIRD}/CLI11.hpp ${TOOLS}/query_set.h
 	${CXX} ${FLAGS}  ${third_include}  $^ -o $@
 
 

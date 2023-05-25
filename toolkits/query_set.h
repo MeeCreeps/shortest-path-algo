@@ -10,15 +10,16 @@
 #include "algo/sp_algo.h"
 #include "graph/graph.h"
 
-enum queryType { Random = 1, Bydis = 2 };
+enum queryType { Random = 1, Bydis = 2, Bydiameter = 3 };
 
 struct QueryOpt {
     int size_ = 10000;
     queryType type_ = queryType::Random;
 };
 
-const int DEFAULT_DELTA = 1000;
+const int DEFAULT_DELTA = 10;
 const int DEFAULT_GRROUP_COUNT = 10;
+const int DEFAULT_QUERY_SIZE = 10000;
 
 class QuerySet {
    public:
@@ -35,7 +36,11 @@ class QuerySet {
 
     std::vector<std::vector<std::pair<vid_t, vid_t>>> generate_by_dis();
 
+    std::vector<std::vector<std::pair<vid_t, vid_t>>> generate_by_diameter();
+
    private:
+    std::pair<w_t, w_t> find_diameter();
+
     std::shared_ptr<Graph> graph_;
     QueryOpt opt_;
     std::shared_ptr<SPAlgo> algo_;
@@ -46,28 +51,21 @@ class QuerySet {
 
 std::vector<std::vector<std::pair<vid_t, vid_t>>> QuerySet::generate_by_dis() {
     int group_count = DEFAULT_GRROUP_COUNT;
-    std::map<std::pair<vid_t, vid_t>, w_t> w_to_pvs;
 
-    std::vector<std::vector<std::pair<vid_t, vid_t>>> group_pvs(group_count);
     std::vector<std::vector<std::pair<vid_t, vid_t>>> res(group_count);
+
     QueryOpt opt;
     opt.size_ = DEFAULT_DELTA * opt_.size_ * DEFAULT_GRROUP_COUNT;
     opt.type_ = queryType::Random;
     auto query_set = generate_randomly(opt);
 
-    w_t max_dist = 0, min_dist = INF;
+    w_t max_dist = 0, min_dist = 1000;
     for (auto pair : query_set) {
         int v1 = pair.first;
         int v2 = pair.second;
         w_t dist = algo_->query(v1, v2);
         if (dist == INF) continue;
         max_dist = std::max(dist, max_dist);
-        min_dist = std::min(min_dist, dist);
-
-        if (v1 > v2) {
-            std::swap(v1, v2);
-        }
-        w_to_pvs.insert({{v1, v2}, dist});
     }
 
     LOG(INFO) << " min dists: " << min_dist << " , max dists:" << max_dist << std::endl;
@@ -88,29 +86,31 @@ std::vector<std::vector<std::pair<vid_t, vid_t>>> QuerySet::generate_by_dis() {
         LOG(INFO) << " range [" << e.first << "," << e.second << "]" << std::endl;
     }
 
-    int index = 0;
-    for (auto& w_pair : w_to_pvs) {
-        index++;
+    perf::Watch watch;
+    watch.mark("t1");
 
-        int dist = w_pair.second;
-        assert(dist != INF);
+    opt.size_ = 100000000;
+    query_set = generate_randomly(opt);
+
+    int finished = 0;
+    for (auto pair : query_set) {
+        int v1 = pair.first;
+        int v2 = pair.second;
+        w_t dist = algo_->query(v1, v2);
         int level = get_dist_level(dist, dis_range);
-        group_pvs[level].push_back(w_pair.first);
-    }
-    LOG(INFO) << "finish leveling" << std::endl;
-
-    int group_size = opt_.size_;
-
-    for (int i = 0; i < group_count; ++i) {
-        std::uniform_int_distribution<unsigned> u(0, group_pvs[i].size() - 1);
-        std::default_random_engine e;
-        e.seed(time(NULL));
-        while (res[i].size() < group_size) {
-
-            int index = u(e);
-            res[i].push_back(group_pvs[i][index]);
+        if (level == -1) continue;
+        if (res[level].size() < DEFAULT_QUERY_SIZE) {
+            res[level].push_back(pair);
+            if (res[level].size() == DEFAULT_QUERY_SIZE) ++finished;
         }
+        if (finished == DEFAULT_GRROUP_COUNT) break;
     }
+
+    LOG(INFO) << "finish generating , time cost : " << watch.showlit_seconds("t1");
+    for (int i = 0; i < group_count; ++i) {
+        LOG(INFO) << " level " << i + 1 << " size: " << res[i].size() << std::endl;
+    }
+
     return res;
 };
 
@@ -124,7 +124,7 @@ int QuerySet::get_dist_level(w_t dist, std::vector<std::pair<double, double>>& d
             break;
         }
     }
-    assert(res != -1);
+    // assert(res != -1);
     return res;
 }
 
@@ -173,6 +173,48 @@ void QuerySet::write_to_file(std::string file_name, std::vector<std::pair<vid_t,
     }
     LOG(INFO) << "finsh writing query set";
     file.close();
+}
+
+std::vector<std::vector<std::pair<vid_t, vid_t>>> QuerySet::generate_by_diameter() {
+    int group_count = DEFAULT_GRROUP_COUNT;
+
+    graph_->dists.assign(graph_->v_size_, INF);
+
+    perf::Watch watch;
+    watch.mark("t1");
+    w_t max_dist = 0, min_dist = INF;
+    for (int i = 0; i < graph_->v_size_; ++i) {
+        auto r = graph_->bfs(i);
+        min_dist = std::min(min_dist, r.first);
+        max_dist = std::max(max_dist, r.second);
+    }
+
+    LOG(INFO) << " finish get diameter, min :" << min_dist << " max :" << max_dist << std::endl;
+    LOG(INFO) << "get diameter cost time : " << watch.showlit_seconds("t1");
+    double x = std::pow((double)max_dist / min_dist, 0.1);
+
+    std::vector<std::pair<double, double>> dis_range;
+
+    for (int i = 1; i <= group_count; ++i) {
+        double left = min_dist * std::pow(x, i - 1);
+        if (i == 1) left = 0;
+        double right = min_dist * std::pow(x, i);
+        if (i == group_count) right = max_dist;
+        dis_range.push_back(std::make_pair(left, right));
+    }
+
+    for (auto e : dis_range) {
+        LOG(INFO) << " range [" << e.first << "," << e.second << "]" << std::endl;
+    }
+
+    std::vector<std::vector<std::pair<vid_t, vid_t>>> res(group_count);
+    // int group_size = opt_.size_;
+    // for (int i = 0; i < group_count; ++i) {
+    //     while (res[i].size() < group_size) {
+
+    //     }
+    // }
+    return res;
 }
 
 #endif  // ANALYSIS_QUERY_SET_H_

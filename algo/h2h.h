@@ -1,21 +1,22 @@
 #ifndef ALGO_H2H_H_
 #define ALGO_H2H_H_
 
+#include <math.h>
+
 #include <algorithm>
 
 #include "ch.h"
-
-struct Node {
+struct  Node {
     int parent;
     vid_t master_v;
     size_t height;
 
-    std::vector<int> pos;
-    std::vector<w_t> dis;
     std::vector<int> child;  // child node ids
     // std::vector<int> belongs;  // the nodes contains v
     std::vector<int> pivot;  // pivot vertex  ,  for path retrieval
 
+    std::vector<int> pos;
+    std::vector<w_t> dis;
 };  // tree node
 
 struct Tree {
@@ -48,15 +49,23 @@ class H2H : public Ch {
 
     inline w_t query(vid_t v, vid_t u) override;
 
-    void load_index() override;
-    void write_index() override;
+    void batch_query(const std::vector<std::pair<vid_t, vid_t>>& v_pair_lists) override;
+
+    // void load_index() { read_original(); } override;
+    // void write_index() { write_original(); } override;
+
+    void write_original() override;
+    void read_original() override;
+
+    void write_binary() override;
+    void read_binary() override;
 
     void statistics() override;
 
    private:
     int get_parent(vid_t v, std::vector<vw_pair>& neigh);
 
-    int get_lca(int _p, int _q);
+    inline int get_lca(int _p, int _q);
 
     void dfs_build_index(int p, std::vector<int>& list);
     // build index  for lca query.
@@ -255,14 +264,17 @@ int H2H::get_parent(vid_t v, std::vector<vw_pair>& neigh) {
     return parent;
 }
 
-int H2H::get_lca(int _p, int _q) {
+inline int H2H::get_lca(int _p, int _q) {
     int p = tree_.toRMQ[_p], q = tree_.toRMQ[_q];
-    if (p > q) {
-        int x = p;
-        p = q;
-        q = x;
-    }
+    if (p > q) std::swap(p, q);
+
     int len = q - p + 1;
+    // int k = (int)std::log(len);
+    // int i = std::pow(2, k);
+    // if (i == k) {
+    //     k--;
+    //     i /= 2;
+    // }
     int i = 1, k = 0;
     while (i * 2 < len) {
         i *= 2;
@@ -281,7 +293,7 @@ inline w_t H2H::query(vid_t v, vid_t u) {
 
     int n1 = tree_.vid2node[v], n2 = tree_.vid2node[u];
     int LCA = get_lca(n1, n2);
-
+    // return LCA;
     if (LCA == n1)
         return tree_.nodes[n2].dis[tree_.nodes[n1].pos.back()];
     else if (LCA == n2)
@@ -296,7 +308,15 @@ inline w_t H2H::query(vid_t v, vid_t u) {
     }
 }
 
-void H2H::load_index() {
+void H2H::batch_query(const std::vector<std::pair<vid_t, vid_t>>& v_pair_lists) {
+    std::vector<w_t> weight;
+    for (auto& p : v_pair_lists) {
+        weight.push_back(query(p.first, p.second));
+        SHOW_DIST(LOG(INFO) << " u:" << p.first << " v:" << p.second << " sp:" << weight.back();)
+    }
+}
+
+void H2H::read_original() {
     std::ifstream fs(index_file_);
     int node_size, v_size, euler_s, rmq_s, rmqi_s;
     if (!fs.good()) {
@@ -348,7 +368,7 @@ void H2H::load_index() {
     LOG(INFO) << "finish writing H2H tree index !";
 }
 
-void H2H::write_index() {
+void H2H::write_original() {
     std::ofstream fs(index_file_);
 
     // [height , width , node size  ,  vertex size , EulerSql_s ,  toRMQ_size ,  RMQIndex size ]
@@ -453,5 +473,115 @@ void H2H::statistics() {
     LOG(INFO) << "exact mem usage(system ):" << (double)mstatus.vm_rss / 1024.0 << "MB"
               << " , " << (double)mstatus.vm_rss / 1024.0 / 1024.0 << "GB" << std::endl;
 }
+
+void H2H::write_binary() {
+    std::ofstream fs(index_file_, std::ios::binary);
+
+    int node_size = tree_.nodes.size(), v_size = tree_.vid2node.size(), euler_s = tree_.EulerSeq.size(),
+        rmq_s = tree_.toRMQ.size(), rmqi_s = tree_.RMQIndex.size();
+
+    fs.write((char*)&tree_.height, sizeof(int));
+    fs.write((char*)&tree_.width, sizeof(int));
+    fs.write((char*)&node_size, sizeof(int));
+    fs.write((char*)&v_size, sizeof(int));
+    fs.write((char*)&euler_s, sizeof(int));
+    fs.write((char*)&rmq_s, sizeof(int));
+    fs.write((char*)&rmqi_s, sizeof(int));
+
+    for (int i = 0; i < v_size; ++i) fs.write((char*)&tree_.vid2node[i], sizeof(int));
+
+    for (int i = 0; i < node_size; ++i) {
+        Node& node = tree_.nodes[i];
+
+        int pos_s = node.pos.size(), dis_s = node.dis.size(), child_s = node.child.size(), pivot_s = node.pivot.size();
+        fs.write((char*)&node.parent, sizeof(int));
+        fs.write((char*)&node.master_v, sizeof(int));
+        fs.write((char*)&node.height, sizeof(int));
+        fs.write((char*)&pos_s, sizeof(int));
+        fs.write((char*)&dis_s, sizeof(int));
+        fs.write((char*)&child_s, sizeof(int));
+        fs.write((char*)&pivot_s, sizeof(int));
+
+        for (int i = 0; i < pos_s; ++i) fs.write((char*)&node.pos[i], sizeof(int));
+        for (int i = 0; i < dis_s; ++i) fs.write((char*)&node.dis[i], sizeof(int));
+        for (int i = 0; i < child_s; ++i) fs.write((char*)&node.child[i], sizeof(int));
+        for (int i = 0; i < pivot_s; ++i) fs.write((char*)&node.pivot[i], sizeof(int));
+    }
+
+    for (int i = 0; i < euler_s; ++i) fs.write((char*)&tree_.EulerSeq[i], sizeof(int));
+    for (int i = 0; i < rmq_s; ++i) fs.write((char*)&tree_.toRMQ[i], sizeof(int));
+
+    for (int i = 0; i < rmqi_s; ++i) {
+        int s = tree_.RMQIndex[i].size();
+        fs.write((char*)&s, sizeof(int));
+
+        for (int j = 0; j < s; ++j) fs.write((char*)&tree_.RMQIndex[i][j], sizeof(int));
+    }
+
+    fs.close();
+    LOG(INFO) << "H2H load index finished ";
+};
+
+void H2H::read_binary() {
+    std::ifstream fs(index_file_, std::ios::binary);
+    int node_size, v_size, euler_s, rmq_s, rmqi_s;
+    if (!fs.good()) {
+        LOG(INFO) << "H2H index file is not exist !";
+        exit(-1);
+    }
+
+    fs.read((char*)&tree_.height, sizeof(int));
+    fs.read((char*)&tree_.width, sizeof(int));
+    fs.read((char*)&node_size, sizeof(int));
+    fs.read((char*)&v_size, sizeof(int));
+    fs.read((char*)&euler_s, sizeof(int));
+    fs.read((char*)&rmq_s, sizeof(int));
+    fs.read((char*)&rmqi_s, sizeof(int));
+
+    tree_.vid2node.resize(v_size);
+    tree_.nodes.resize(node_size);
+    tree_.EulerSeq.resize(euler_s);
+    tree_.toRMQ.resize(rmq_s);
+    tree_.RMQIndex.resize(rmqi_s);
+
+    for (int i = 0; i < v_size; ++i) fs.read((char*)&tree_.vid2node[i], sizeof(int));
+
+    for (int i = 0; i < node_size; ++i) {
+        Node& node = tree_.nodes[i];
+        int pos_s, dis_s, child_s, pivot_s;
+        fs.read((char*)&node.parent, sizeof(int));
+        fs.read((char*)&node.master_v, sizeof(int));
+        fs.read((char*)&node.height, sizeof(int));
+        fs.read((char*)&pos_s, sizeof(int));
+        fs.read((char*)&dis_s, sizeof(int));
+        fs.read((char*)&child_s, sizeof(int));
+        fs.read((char*)&pivot_s, sizeof(int));
+
+        node.pos.resize(pos_s);
+        node.dis.resize(dis_s);
+        node.child.resize(child_s);
+        node.pivot.resize(pivot_s);
+        for (int i = 0; i < pos_s; ++i) fs.read((char*)&node.pos[i], sizeof(int));
+        for (int i = 0; i < dis_s; ++i) fs.read((char*)&node.dis[i], sizeof(int));
+        for (int i = 0; i < child_s; ++i) fs.read((char*)&node.child[i], sizeof(int));
+        for (int i = 0; i < pivot_s; ++i) fs.read((char*)&node.pivot[i], sizeof(int));
+    }
+
+    for (int i = 0; i < euler_s; ++i) fs.read((char*)&tree_.EulerSeq[i], sizeof(int));
+    for (int i = 0; i < rmq_s; ++i) fs.read((char*)&tree_.toRMQ[i], sizeof(int));
+
+    for (int i = 0; i < rmqi_s; ++i) {
+        int i_size;
+        fs.read((char*)&i_size, sizeof(int));
+
+        tree_.RMQIndex[i].resize(i_size);
+        for (int j = 0; j < i_size; ++j) {
+            fs.read((char*)&tree_.RMQIndex[i][j], sizeof(int));
+        }
+    }
+    fs.close();
+
+    LOG(INFO) << "finish writing H2H tree index !";
+};
 
 #endif  // ALGO_H2H_H_

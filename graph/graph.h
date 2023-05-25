@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <map>
+#include <queue>
 #include <string>
 #include <vector>
 
@@ -36,10 +37,14 @@ class Graph {
     vid_t get_v_size() { return v_size_; };
     vid_t get_e_size() { return e_size_; };
 
+    std::pair<w_t, w_t> bfs(vid_t node);
+
     std::vector<std::vector<vw_pair>> neighbors_;
 
     vid_t v_size_;
     vid_t e_size_;
+
+    std::vector<w_t> dists;
 };
 
 void Graph::init_from_file(std::string file_name) {
@@ -58,6 +63,42 @@ void Graph::init_from_file(std::string file_name) {
         neighbors_[src].push_back({dst, weight});
         neighbors_[dst].push_back({src, weight});
     }
+}
+
+std::pair<w_t, w_t> Graph::bfs(vid_t node) {
+    std::priority_queue<wv_pair, std::vector<wv_pair>, std::greater<wv_pair>> dq;
+
+    std::vector<vid_t> visited;
+    dq.push({0, node});
+    dists[node] = 0;
+    while (!dq.empty()) {
+        vid_t v = dq.top().second;
+        w_t w = dq.top().first;
+        dq.pop();
+        visited.push_back(v);
+
+        if (w <= dists[v]) {
+            for (auto &edge : neighbors_[node]) {
+                vid_t v2 = edge.first;
+                w_t w2 = edge.second;
+
+                if (dists[v] + w2 < dists[v2]) {
+                    dists[v2] = dists[v] + w2;
+                    dq.push({dists[v2], v2});
+                    visited.push_back(v2);
+                }
+            }
+        }
+    }
+
+    w_t min = INF, max = 0;
+    for (auto v : visited) {
+        if (v == node || dists[v] == INF) continue;
+        min = std::min(min, dists[v]);
+        max = std::max(max, dists[v]);
+        dists[v] = INF;
+    }
+    return {min, max};
 }
 
 #endif  // GRAPH_GRAPH_H_
